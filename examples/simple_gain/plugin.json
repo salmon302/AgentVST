@@ -1,0 +1,33 @@
+{
+  "plugin": {
+    "name": "SimpleGain",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "gain_db",
+      "name": "Gain",
+      "type": "float",
+      "min": -60.0,
+      "max": 12.0,
+      "default": 0.0,
+      "unit": "dB",
+      "skew": 1.0
+    },
+    {
+      "id": "bypass",
+      "name": "Bypass",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "groups": [
+    {
+      "id": "main",
+      "name": "Main",
+      "parameters": ["gain_db", "bypass"]
+    }
+  ]
+}
