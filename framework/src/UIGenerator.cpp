@@ -22,6 +22,22 @@ std::string UIGenerator::generateHTML(const PluginSchema& schema,
          << "      <h1>" << escapeHtml(schema.metadata.name) << "</h1>\n"
          << "      <span class=\"plugin-version\">v" << escapeHtml(schema.metadata.version) << "</span>\n"
          << "    </header>\n"
+         << "    <section class=\"meter-strip\">\n"
+         << "      <div class=\"meter-panel\">\n"
+         << "        <div class=\"meter-panel-title\">Input</div>\n"
+         << "        <div class=\"meter-row\"><span>Peak L</span><div class=\"meter-bar\" data-meter-id=\"inputPeakL\"><div class=\"meter-fill\"></div></div></div>\n"
+         << "        <div class=\"meter-row\"><span>Peak R</span><div class=\"meter-bar\" data-meter-id=\"inputPeakR\"><div class=\"meter-fill\"></div></div></div>\n"
+         << "        <div class=\"meter-row\"><span>RMS L</span><div class=\"meter-bar\" data-meter-id=\"inputRmsL\"><div class=\"meter-fill\"></div></div></div>\n"
+         << "        <div class=\"meter-row\"><span>RMS R</span><div class=\"meter-bar\" data-meter-id=\"inputRmsR\"><div class=\"meter-fill\"></div></div></div>\n"
+         << "      </div>\n"
+         << "      <div class=\"meter-panel\">\n"
+         << "        <div class=\"meter-panel-title\">Output</div>\n"
+         << "        <div class=\"meter-row\"><span>Peak L</span><div class=\"meter-bar\" data-meter-id=\"outputPeakL\"><div class=\"meter-fill\"></div></div></div>\n"
+         << "        <div class=\"meter-row\"><span>Peak R</span><div class=\"meter-bar\" data-meter-id=\"outputPeakR\"><div class=\"meter-fill\"></div></div></div>\n"
+         << "        <div class=\"meter-row\"><span>RMS L</span><div class=\"meter-bar\" data-meter-id=\"outputRmsL\"><div class=\"meter-fill\"></div></div></div>\n"
+         << "        <div class=\"meter-row\"><span>RMS R</span><div class=\"meter-bar\" data-meter-id=\"outputRmsR\"><div class=\"meter-fill\"></div></div></div>\n"
+         << "      </div>\n"
+         << "    </section>\n"
          << "    <div class=\"controls\">\n";
 
     // Render grouped parameters
@@ -55,11 +71,13 @@ std::string UIGenerator::generateCSS() const {
   --surface: #16213e;
   --accent: #0f3460;
   --highlight: #e94560;
+  --highlight-soft: #ff9b71;
   --text: #eaeaea;
   --text-muted: #888;
   --border: #2d2d4e;
   --knob-track: #0f3460;
   --knob-fill: #e94560;
+  --meter-bg: #0d1631;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -104,6 +122,57 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
+}
+
+.meter-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.meter-panel {
+  background: linear-gradient(180deg, rgba(24, 46, 85, 0.9), rgba(10, 20, 40, 0.95));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.meter-panel-title {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.meter-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.meter-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--meter-bg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.meter-fill {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--highlight), var(--highlight-soft));
+  transition: transform 80ms linear;
 }
 
 .param-group {
@@ -194,35 +263,349 @@ select {
   cursor: pointer;
   outline: none;
 }
+
+@media (max-width: 720px) {
+  .plugin-container {
+    min-width: 0;
+    padding: 12px;
+  }
+
+  .meter-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .controls {
+    flex-direction: column;
+  }
+
+  .param-group {
+    min-width: 0;
+  }
+}
 )CSS";
 }
 
 std::string UIGenerator::generateJS(const PluginSchema& schema) const {
     std::ostringstream js;
-    js << R"JS(
-// AgentVST Parameter Bridge (Phase 0: stub — replaced by JUCE 8 WebView bridge in Phase 3)
-const AgentVST = {
-    params: {},
 
-    init() {
-        // In Phase 3, this will call Juce.getSliderState() for live binding.
-        // For now, we wire HTML controls to a local state object.
-        document.querySelectorAll('[data-param-id]').forEach(el => {
-            const id = el.dataset.paramId;
-            const display = document.querySelector('[data-param-display="' + id + '"]');
+    js << "const AgentVSTParameterDefs = {\n";
+    for (const auto& param : schema.parameters) {
+        js << "  \"" << escapeJs(param.id) << "\": {\n"
+           << "    type: \"" << escapeJs(param.type) << "\",\n"
+           << "    unit: \"" << escapeJs(param.unit) << "\",\n"
+           << "    min: " << param.minValue << ",\n"
+           << "    max: " << param.maxValue << ",\n"
+           << "    step: " << (param.step > 0.0f ? param.step : 0.0f) << ",\n"
+           << "    enumOptions: [";
 
-            el.addEventListener('input', () => {
-                AgentVST.params[id] = parseFloat(el.value);
-                if (display) {
-                    display.textContent = parseFloat(el.value).toFixed(2);
-                }
-                // Phase 3: will call Juce.setNormalisedValue(id, normalised)
-            });
-        });
+        for (std::size_t i = 0; i < param.enumOptions.size(); ++i) {
+            if (i > 0)
+                js << ", ";
+            js << "\"" << escapeJs(param.enumOptions[i]) << "\"";
+        }
+
+        js << "]\n"
+           << "  },\n";
     }
+    js << "};\n\n";
+
+    js << R"JS(
+const JuceNative = (() => {
+  const pending = new Map();
+  let nextPromiseId = 1;
+
+  const hasBackend = () =>
+    typeof window.__JUCE__ !== "undefined" &&
+    window.__JUCE__ !== null &&
+    typeof window.__JUCE__.backend !== "undefined";
+
+  const invoke = (name, ...params) => {
+    if (!hasBackend()) {
+      return Promise.resolve(undefined);
+    }
+
+    return new Promise((resolve) => {
+      const promiseId = nextPromiseId++;
+      pending.set(promiseId, resolve);
+
+      window.__JUCE__.backend.emitEvent("__juce__invoke", {
+        name,
+        params,
+        resultId: promiseId
+      });
+    });
+  };
+
+  if (hasBackend()) {
+    window.__JUCE__.backend.addEventListener("__juce__complete", (payload) => {
+      if (!payload || typeof payload.promiseId !== "number") {
+        return;
+      }
+
+      const completion = pending.get(payload.promiseId);
+      if (!completion) {
+        return;
+      }
+
+      pending.delete(payload.promiseId);
+      completion(payload.result);
+    });
+  }
+
+  return { hasBackend, invoke };
+})();
+
+const AgentVST = {
+  controls: new Map(),
+  displays: new Map(),
+  meterFills: new Map(),
+  isSyncingFromHost: false,
+  pollTimer: null,
+  backendEventTokens: [],
+
+  init() {
+    document.querySelectorAll("[data-param-id]").forEach((el) => {
+      const id = el.dataset.paramId;
+      this.controls.set(id, el);
+
+      const display = document.querySelector('[data-param-display="' + id + '"]');
+      if (display) {
+        this.displays.set(id, display);
+      }
+
+      el.addEventListener("input", () => {
+        void this.handleControlChanged(id);
+      });
+
+      this.updateDisplay(id, this.readControlValue(id));
+    });
+
+    document.querySelectorAll("[data-meter-id]").forEach((el) => {
+      const id = el.dataset.meterId;
+      const fill = el.querySelector(".meter-fill");
+      if (fill) {
+        this.meterFills.set(id, fill);
+      }
+    });
+
+    if (JuceNative.hasBackend() &&
+        typeof window.__JUCE__.backend.addEventListener === "function") {
+      this.backendEventTokens.push(window.__JUCE__.backend.addEventListener(
+        "agentParameterSnapshot",
+        (values) => {
+          this.applySnapshot(values);
+        }
+      ));
+
+      this.backendEventTokens.push(window.__JUCE__.backend.addEventListener(
+        "agentMeterSnapshot",
+        (values) => {
+          this.applyMeterSnapshot(values);
+        }
+      ));
+    }
+
+    void this.syncFromHost();
+    void this.syncMetersFromHost();
+    this.pollTimer = window.setInterval(() => {
+      void this.syncFromHost();
+      void this.syncMetersFromHost();
+    }, 750);
+  },
+
+  getDef(id) {
+    return AgentVSTParameterDefs[id] || { type: "float", unit: "", enumOptions: [] };
+  },
+
+  readControlValue(id) {
+    const control = this.controls.get(id);
+    if (!control) {
+      return undefined;
+    }
+
+    const def = this.getDef(id);
+
+    if (control.type === "checkbox") {
+      return control.checked;
+    }
+
+    if (control.tagName === "SELECT") {
+      return Number.parseInt(control.value, 10) || 0;
+    }
+
+    const parsed = Number.parseFloat(control.value);
+    if (!Number.isFinite(parsed)) {
+      return def.type === "int" || def.type === "enum" ? 0 : 0.0;
+    }
+
+    if (def.type === "int" || def.type === "enum") {
+      return Math.round(parsed);
+    }
+
+    return parsed;
+  },
+
+  writeControlValue(id, value) {
+    const control = this.controls.get(id);
+    if (!control) {
+      return;
+    }
+
+    const def = this.getDef(id);
+
+    if (control.type === "checkbox") {
+      control.checked = Boolean(value);
+      return;
+    }
+
+    if (control.tagName === "SELECT") {
+      const index = Number.parseInt(value, 10);
+      control.value = Number.isFinite(index) ? String(index) : "0";
+      return;
+    }
+
+    const numeric = Number.parseFloat(value);
+    if (!Number.isFinite(numeric)) {
+      return;
+    }
+
+    control.value = String(def.type === "int" ? Math.round(numeric) : numeric);
+  },
+
+  formatValue(id, value) {
+    const def = this.getDef(id);
+
+    if (def.type === "boolean") {
+      return value ? "On" : "Off";
+    }
+
+    if (def.type === "enum") {
+      const index = Number.parseInt(value, 10) || 0;
+      if (Array.isArray(def.enumOptions) && index >= 0 && index < def.enumOptions.length) {
+        return def.enumOptions[index];
+      }
+      return String(index);
+    }
+
+    if (def.type === "int") {
+      const intValue = Number.parseInt(value, 10) || 0;
+      return def.unit ? String(intValue) + " " + def.unit : String(intValue);
+    }
+
+    const floatValue = Number.parseFloat(value);
+    if (!Number.isFinite(floatValue)) {
+      return "";
+    }
+
+    const display = floatValue.toFixed(2);
+    return def.unit ? display + " " + def.unit : display;
+  },
+
+  updateDisplay(id, value) {
+    const display = this.displays.get(id);
+    if (!display) {
+      return;
+    }
+
+    display.textContent = this.formatValue(id, value);
+  },
+
+  applySnapshot(values) {
+    if (!values || typeof values !== "object") {
+      return;
+    }
+
+    this.isSyncingFromHost = true;
+
+    this.controls.forEach((_, id) => {
+      if (!Object.prototype.hasOwnProperty.call(values, id)) {
+        return;
+      }
+
+      const value = values[id];
+      this.writeControlValue(id, value);
+      this.updateDisplay(id, value);
+    });
+
+    this.isSyncingFromHost = false;
+  },
+
+  applyMeterSnapshot(values) {
+    if (!values || typeof values !== "object") {
+      return;
+    }
+
+    this.meterFills.forEach((fill, id) => {
+      if (!Object.prototype.hasOwnProperty.call(values, id)) {
+        return;
+      }
+
+      const raw = Number.parseFloat(values[id]);
+      if (!Number.isFinite(raw)) {
+        return;
+      }
+
+      const clamped = Math.max(0.0, Math.min(1.0, raw));
+      fill.style.transform = "scaleX(" + clamped.toFixed(4) + ")";
+    });
+  },
+
+  async handleControlChanged(id) {
+    if (this.isSyncingFromHost) {
+      return;
+    }
+
+    const value = this.readControlValue(id);
+    this.updateDisplay(id, value);
+
+    if (!JuceNative.hasBackend()) {
+      return;
+    }
+
+    const result = await JuceNative.invoke("agentSetParameter", id, value);
+    if (typeof result !== "undefined") {
+      this.writeControlValue(id, result);
+      this.updateDisplay(id, result);
+    }
+  },
+
+  async syncFromHost() {
+    if (!JuceNative.hasBackend()) {
+      return;
+    }
+
+    const values = await JuceNative.invoke("agentGetAllParameters");
+    this.applySnapshot(values);
+  },
+
+  async syncMetersFromHost() {
+    if (!JuceNative.hasBackend()) {
+      return;
+    }
+
+    const values = await JuceNative.invoke("agentGetMeters");
+    this.applyMeterSnapshot(values);
+  },
+
+  destroy() {
+    if (this.pollTimer !== null) {
+      window.clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+
+    if (this.backendEventTokens.length > 0 &&
+        JuceNative.hasBackend() &&
+        typeof window.__JUCE__.backend.removeEventListener === "function") {
+      this.backendEventTokens.forEach((token) => {
+        window.__JUCE__.backend.removeEventListener(token);
+      });
+      this.backendEventTokens = [];
+    }
+  }
 };
 
-document.addEventListener('DOMContentLoaded', () => AgentVST.init());
+document.addEventListener("DOMContentLoaded", () => AgentVST.init());
+window.addEventListener("beforeunload", () => AgentVST.destroy());
 )JS";
     return js.str();
 }
@@ -288,6 +671,22 @@ std::string UIGenerator::escapeHtml(const std::string& str) const {
             case '"':  out += "&quot;"; break;
             case '\'': out += "&#39;";  break;
             default:   out += c;        break;
+        }
+    }
+    return out;
+}
+
+std::string UIGenerator::escapeJs(const std::string& str) const {
+    std::string out;
+    out.reserve(str.size());
+    for (char c : str) {
+        switch (c) {
+            case '\\': out += "\\\\"; break;
+            case '"':  out += "\\\""; break;
+            case '\n': out += "\\n";  break;
+            case '\r': out += "\\r";  break;
+            case '\t': out += "\\t";  break;
+            default:   out += c;       break;
         }
     }
     return out;

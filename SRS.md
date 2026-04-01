@@ -398,6 +398,43 @@ layout:
       parameter: "filter_type"
       label: "Type"
 ```
+---
+
+## 8. Incubation-Layer Pivot
+
+AgentVST will support an "incubation-layer" mode: rather than being a full, standalone AI development engine, AgentVST becomes the reliable scaffolding that makes existing AI developer tools (editor assistants like GitHub Copilot and remote systems like Claude Code) much more effective at producing robust audio plugins.
+
+### 8.1 Objectives
+
+- Provide deterministic schemas and code templates that encourage assistants to output parseable, machine-validated artifacts.
+- Offer build/test orchestration to compile, run unit and audio acceptance tests, and produce actionable diagnostics.
+- Provide curated prompt templates and in-repo instruction blocks for editor-integrated assistants (Copilot) and remote LLMs (Claude Code).
+- Offer an optional orchestrator API to safely run remote generations server-side with sandboxing and an approval workflow.
+
+### 8.2 Core Capabilities
+
+- Schema Registry: authoritative JSON Schema(s) for plugin definitions and UI markup.
+- Prompt Templates & Snippets: short, deterministic templates to guide in-editor completions.
+- Template-Based Code Generator: render JUCE skeletons from validated schema inputs.
+- Orchestrator API (optional): run generate → build → test pipelines and return machine-readable results.
+- Testbeds & Validators: audio fixtures, performance/xrun checks, static analysis, and runtime sanitizers.
+
+### 8.3 Integration Patterns
+
+- Editor-first (Copilot): ship `docs/prompts/` and in-repo instruction blocks that guide Copilot to emit schema-only outputs or minimal, well-scoped patches.
+- Remote LLMs (Claude Code and others): use the orchestrator API to submit prompts, require JSON-only responses, then run generation and validation server-side with sandboxing.
+- CI Hooks: run builds and tests on AI-generated branches and fail merges when validations or tests fail.
+
+### 8.4 MVP (Prioritized)
+
+1. `schema/` — JSON Schema + example plugin spec.
+2. `docs/prompts/` — Copilot + remote-LLM prompt templates and example instruction-blocks.
+3. `scripts/generate.py` — template-only generator that maps schema → JUCE skeletons.
+4. `orchestrator/` (stub) — minimal FastAPI CLI that runs generation and invokes the build/test hooks.
+5. Simple audio acceptance tests and a CI workflow template.
+
+For full guidelines, sample prompts, and quick-start workflows see [docs/INCUBATION_LAYER.md](docs/INCUBATION_LAYER.md).
+
 
 ---
 

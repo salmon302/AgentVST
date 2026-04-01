@@ -46,6 +46,7 @@ private:
     std::string generateGroupSection(const ParameterGroup& group,
                                      const PluginSchema& schema) const;
     std::string escapeHtml(const std::string& str) const;
+    std::string escapeJs(const std::string& str) const;
 };
 
 } // namespace AgentVST

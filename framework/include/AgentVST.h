@@ -10,6 +10,7 @@
 #include "SchemaParser.h"
 #include "ParameterCache.h"
 #include "DSPNode.h"
+#include "DSPRouter.h"
 #include "ProcessBlockHandler.h"
 #include "UIGenerator.h"
 
@@ -18,3 +19,4 @@
 #include "../src/modules/Gain.h"
 #include "../src/modules/EnvelopeFollower.h"
 #include "../src/modules/Oscillator.h"
+#include "../src/modules/Delay.h"

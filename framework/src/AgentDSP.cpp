@@ -1,4 +1,5 @@
 #include "AgentDSP.h"
+#include "ParameterCache.h"
 #include <stdexcept>
 
 namespace AgentVST {

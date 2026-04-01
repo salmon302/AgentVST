@@ -1,4 +1,5 @@
 #include "ProcessBlockHandler.h"
+#include "DSPRouter.h"
 #include <algorithm>
 #include <thread>
 
@@ -18,6 +19,10 @@ void ProcessBlockHandler::setAgentDSP(IAgentDSP* agentDSP,
                                        const ParameterCache& paramCache) {
     agentDSP_   = agentDSP;
     paramCache_ = &paramCache;
+}
+
+void ProcessBlockHandler::setDSPRouter(DSPRouter* router) {
+    router_ = router;
 }
 
 void ProcessBlockHandler::setWatchdogBudget(double budgetFraction) noexcept {
@@ -45,6 +50,9 @@ void ProcessBlockHandler::processBlock(
     const double budgetMs         = bufferDurationMs * budgetFraction_;
 
     watchdogTriggered_.store(false, std::memory_order_relaxed);
+
+    if (router_ && router_->isConfigured())
+        router_->updateParameters(*paramCache_);
 
     auto startTime = std::chrono::high_resolution_clock::now();
     bool timedOut  = false;
@@ -75,9 +83,13 @@ void ProcessBlockHandler::processBlock(
             float* channelData = buffer.getWritePointer(ch);
 
             if (!timedOut) {
-                channelData[sample] = agentDSP_->processSample(ch,
-                                                                channelData[sample],
-                                                                ctx);
+                if (router_ && router_->isConfigured()) {
+                    channelData[sample] = router_->processSample(ch, channelData[sample]);
+                } else {
+                    channelData[sample] = agentDSP_->processSample(ch,
+                                                                    channelData[sample],
+                                                                    ctx);
+                }
             }
             // If timed out: pass input through unchanged (silence is wrong for effect plugins)
         }

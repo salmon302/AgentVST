@@ -3,8 +3,18 @@
 #include "StateSerializer.h"
 #include "SchemaParser.h"
 
+#include "../modules/BiquadFilter.h"
+#include "../modules/Delay.h"
+#include "../modules/EnvelopeFollower.h"
+#include "../modules/Gain.h"
+#include "../modules/Oscillator.h"
+
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <algorithm>
+#include <cctype>
+#include <cmath>
 #include <stdexcept>
+#include <vector>
 
 // AGENTVST_SCHEMA_PATH is injected by agentvst_add_plugin() in cmake
 #ifndef AGENTVST_SCHEMA_PATH
@@ -12,6 +22,78 @@
 #endif
 
 namespace AgentVST {
+
+namespace {
+
+struct ChannelMeters {
+    float peak = 0.0f;
+    float rms  = 0.0f;
+};
+
+ChannelMeters computeChannelMeters(const juce::AudioBuffer<float>& buffer, int channel) {
+    ChannelMeters meters;
+
+    if (channel < 0 || channel >= buffer.getNumChannels())
+        return meters;
+
+    const auto* data = buffer.getReadPointer(channel);
+    const int numSamples = buffer.getNumSamples();
+    if (data == nullptr || numSamples <= 0)
+        return meters;
+
+    double sumSquares = 0.0;
+    float peak = 0.0f;
+
+    for (int i = 0; i < numSamples; ++i) {
+        const float sample = data[i];
+        const float absSample = std::abs(sample);
+        if (absSample > peak)
+            peak = absSample;
+
+        sumSquares += static_cast<double>(sample) * static_cast<double>(sample);
+    }
+
+    meters.peak = peak;
+    meters.rms = static_cast<float>(std::sqrt(sumSquares / static_cast<double>(numSamples)));
+    return meters;
+}
+
+std::string toLower(std::string text) {
+    for (char& c : text)
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return text;
+}
+
+std::unique_ptr<DSPNode> createNodeForId(const std::string& nodeId) {
+    const auto lower = toLower(nodeId);
+
+    if (lower.find("filter") != std::string::npos ||
+        lower.find("biquad") != std::string::npos) {
+        return std::make_unique<BiquadFilter>();
+    }
+    if (lower.find("osc") != std::string::npos ||
+        lower.find("lfo") != std::string::npos) {
+        return std::make_unique<Oscillator>();
+    }
+    if (lower.find("env") != std::string::npos ||
+        lower.find("follow") != std::string::npos) {
+        return std::make_unique<EnvelopeFollower>();
+    }
+    if (lower.find("delay") != std::string::npos ||
+        lower.find("echo") != std::string::npos) {
+        return std::make_unique<Delay>();
+    }
+    if (lower.find("gain") != std::string::npos ||
+        lower.find("amp") != std::string::npos ||
+        lower.find("volume") != std::string::npos ||
+        lower.find("level") != std::string::npos) {
+        return std::make_unique<Gain>();
+    }
+
+    return {};
+}
+
+} // namespace
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Construction
@@ -61,7 +143,10 @@ AgentVSTProcessor::AgentVSTProcessor()
         juce::Logger::writeToLog("AgentVST: No DSP registered. Using pass-through.");
     }
 
+    initDSPRouterFromSchema();
+
     blockHandler_.setAgentDSP(agentDSP_.get(), paramCache_);
+    blockHandler_.setDSPRouter(&dspRouter_);
 }
 
 AgentVSTProcessor::~AgentVSTProcessor() = default;
@@ -139,11 +224,57 @@ void AgentVSTProcessor::initParameterCache() {
     paramCache_.finalize();
 }
 
+void AgentVSTProcessor::initDSPRouterFromSchema() {
+    if (schema_.dspRouting.empty())
+        return;
+
+    std::vector<std::string> nodeIds;
+    auto addNodeId = [&nodeIds](const std::string& id) {
+        if (std::find(nodeIds.begin(), nodeIds.end(), id) == nodeIds.end())
+            nodeIds.push_back(id);
+    };
+
+    for (const auto& route : schema_.dspRouting) {
+        if (route.source != "input" && route.source != "output")
+            addNodeId(route.source);
+        if (route.destination != "input" && route.destination != "output")
+            addNodeId(route.destination);
+    }
+
+    if (nodeIds.empty())
+        return;
+
+    dspRouter_.clearNodes();
+
+    for (const auto& nodeId : nodeIds) {
+        auto node = createNodeForId(nodeId);
+        if (!node) {
+            juce::Logger::writeToLog("AgentVST: Router disabled, unknown node type for id: " +
+                                     juce::String(nodeId));
+            dspRouter_.clearNodes();
+            return;
+        }
+        dspRouter_.addNode(nodeId, std::move(node));
+    }
+
+    try {
+        dspRouter_.setRouting(schema_.dspRouting);
+    } catch (const std::exception& e) {
+        juce::Logger::writeToLog(juce::String("AgentVST: Router configuration failed: ") + e.what());
+        dspRouter_.clearNodes();
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Audio processing
 // ─────────────────────────────────────────────────────────────────────────────
 
 void AgentVSTProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+    if (dspRouter_.isConfigured()) {
+        dspRouter_.prepare(sampleRate, samplesPerBlock);
+        dspRouter_.bindParameters(paramCache_);
+    }
+
     blockHandler_.prepare(sampleRate, samplesPerBlock);
 
     juce::AudioPlayHead::CurrentPositionInfo dummyPos;
@@ -154,20 +285,49 @@ void AgentVSTProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
 }
 
 void AgentVSTProcessor::releaseResources() {
+    if (dspRouter_.isConfigured())
+        dspRouter_.reset();
+
     if (agentDSP_)
         agentDSP_->reset();
+
+    inputPeakL_.store(0.0f, std::memory_order_relaxed);
+    inputPeakR_.store(0.0f, std::memory_order_relaxed);
+    inputRmsL_.store(0.0f, std::memory_order_relaxed);
+    inputRmsR_.store(0.0f, std::memory_order_relaxed);
+    outputPeakL_.store(0.0f, std::memory_order_relaxed);
+    outputPeakR_.store(0.0f, std::memory_order_relaxed);
+    outputRmsL_.store(0.0f, std::memory_order_relaxed);
+    outputRmsR_.store(0.0f, std::memory_order_relaxed);
 }
 
 void AgentVSTProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                       juce::MidiBuffer& midi) {
     juce::ScopedNoDenormals noDenormals;
 
+    const auto inputL = computeChannelMeters(buffer, 0);
+    const auto inputR = buffer.getNumChannels() > 1 ? computeChannelMeters(buffer, 1)
+                                                     : inputL;
+
     // Get host position info
     juce::AudioPlayHead::CurrentPositionInfo posInfo;
-    if (auto* playHead = getPlayHead())
-        playHead->getCurrentPosition(posInfo);
+    if (auto* hostPlayHead = getPlayHead())
+        hostPlayHead->getCurrentPosition(posInfo);
 
     blockHandler_.processBlock(buffer, midi, posInfo);
+
+    const auto outputL = computeChannelMeters(buffer, 0);
+    const auto outputR = buffer.getNumChannels() > 1 ? computeChannelMeters(buffer, 1)
+                                                      : outputL;
+
+    inputPeakL_.store(inputL.peak, std::memory_order_relaxed);
+    inputPeakR_.store(inputR.peak, std::memory_order_relaxed);
+    inputRmsL_.store(inputL.rms, std::memory_order_relaxed);
+    inputRmsR_.store(inputR.rms, std::memory_order_relaxed);
+    outputPeakL_.store(outputL.peak, std::memory_order_relaxed);
+    outputPeakR_.store(outputR.peak, std::memory_order_relaxed);
+    outputRmsL_.store(outputL.rms, std::memory_order_relaxed);
+    outputRmsR_.store(outputR.rms, std::memory_order_relaxed);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -176,11 +336,26 @@ void AgentVSTProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
 void AgentVSTProcessor::getStateInformation(juce::MemoryBlock& destData) {
     // Serialise APVTS state + non-parameter state
-    StateSerializer::saveState(*apvts_, nonParamState_, destData);
+    if (auto xml = StateSerializer::createStateXml(*apvts_, nonParamState_))
+        copyXmlToBinary(*xml, destData);
 }
 
 void AgentVSTProcessor::setStateInformation(const void* data, int sizeInBytes) {
-    StateSerializer::loadState(*apvts_, nonParamState_, data, sizeInBytes);
+    if (auto xml = getXmlFromBinary(data, sizeInBytes))
+        StateSerializer::loadStateFromXml(*apvts_, nonParamState_, *xml);
+}
+
+AgentVSTProcessor::MeterSnapshot AgentVSTProcessor::getMeterSnapshot() const noexcept {
+    MeterSnapshot snapshot;
+    snapshot.inputPeakL  = inputPeakL_.load(std::memory_order_relaxed);
+    snapshot.inputPeakR  = inputPeakR_.load(std::memory_order_relaxed);
+    snapshot.inputRmsL   = inputRmsL_.load(std::memory_order_relaxed);
+    snapshot.inputRmsR   = inputRmsR_.load(std::memory_order_relaxed);
+    snapshot.outputPeakL = outputPeakL_.load(std::memory_order_relaxed);
+    snapshot.outputPeakR = outputPeakR_.load(std::memory_order_relaxed);
+    snapshot.outputRmsL  = outputRmsL_.load(std::memory_order_relaxed);
+    snapshot.outputRmsR  = outputRmsR_.load(std::memory_order_relaxed);
+    return snapshot;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

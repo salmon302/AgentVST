@@ -1,7 +1,79 @@
 #include "AgentVSTEditor.h"
 #include "UIGenerator.h"
 
+#include <cmath>
+#include <cstddef>
+#include <cstring>
+#include <vector>
+
+#ifndef AGENTVST_DEV_SERVER_URL
+    #define AGENTVST_DEV_SERVER_URL "http://127.0.0.1:5173"
+#endif
+
+#ifndef AGENTVST_UI_ROOT
+    #define AGENTVST_UI_ROOT ""
+#endif
+
 namespace AgentVST {
+
+namespace {
+
+#if JUCE_WEB_BROWSER
+double varToDouble(const juce::var& value) {
+    if (value.isBool())
+        return static_cast<bool>(value) ? 1.0 : 0.0;
+    if (value.isInt() || value.isInt64() || value.isDouble())
+        return static_cast<double>(value);
+    if (value.isString())
+        return value.toString().getDoubleValue();
+    return 0.0;
+}
+
+std::vector<std::byte> stringToBytes(const std::string& text) {
+    std::vector<std::byte> bytes;
+    bytes.reserve(text.size());
+    for (unsigned char c : text)
+        bytes.push_back(static_cast<std::byte>(c));
+    return bytes;
+}
+
+std::vector<std::byte> fileToBytes(const juce::File& file) {
+    juce::MemoryBlock data;
+    if (!file.loadFileAsData(data))
+        return {};
+
+    std::vector<std::byte> bytes(data.getSize());
+    if (!bytes.empty())
+        std::memcpy(bytes.data(), data.getData(), data.getSize());
+
+    return bytes;
+}
+
+bool parseBooleanEnvValue(const juce::String& value) {
+    const auto lower = value.trim().toLowerCase();
+    return lower == "1" || lower == "true" || lower == "yes" || lower == "on";
+}
+
+std::string mimeTypeForPath(const juce::String& path) {
+    const auto extension = path.fromLastOccurrenceOf(".", false, false).toLowerCase();
+
+    if (extension == ".html" || extension == ".htm") return "text/html; charset=utf-8";
+    if (extension == ".css") return "text/css; charset=utf-8";
+    if (extension == ".js" || extension == ".mjs") return "application/javascript; charset=utf-8";
+    if (extension == ".json") return "application/json; charset=utf-8";
+    if (extension == ".svg") return "image/svg+xml";
+    if (extension == ".png") return "image/png";
+    if (extension == ".jpg" || extension == ".jpeg") return "image/jpeg";
+    if (extension == ".gif") return "image/gif";
+    if (extension == ".webp") return "image/webp";
+    if (extension == ".woff") return "font/woff";
+    if (extension == ".woff2") return "font/woff2";
+
+    return "application/octet-stream";
+}
+#endif
+
+} // namespace
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Construction
@@ -10,6 +82,17 @@ namespace AgentVST {
 AgentVSTEditor::AgentVSTEditor(AgentVSTProcessor& processor)
     : AudioProcessorEditor(processor), proc_(processor)
 {
+#if JUCE_WEB_BROWSER
+    usingWebView_ = initialiseWebView();
+#endif
+
+    if (usingWebView_) {
+        setSize(840, 560);
+        setResizable(true, true);
+        setResizeLimits(kMinWidth, 280, 1800, 1400);
+        return;
+    }
+
     buildUI();
 
     const int h = computeEditorHeight();
@@ -18,7 +101,298 @@ AgentVSTEditor::AgentVSTEditor(AgentVSTProcessor& processor)
     setResizeLimits(kMinWidth, 100, 1200, 900);
 }
 
-AgentVSTEditor::~AgentVSTEditor() = default;
+AgentVSTEditor::~AgentVSTEditor() {
+#if JUCE_WEB_BROWSER
+    stopTimer();
+    unregisterParameterListeners();
+#endif
+}
+
+#if JUCE_WEB_BROWSER
+bool AgentVSTEditor::initialiseWebView() {
+#if !JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
+    return false;
+#else
+    UIGenerator uiGenerator;
+    webUiHtml_ = uiGenerator.generateHTML(proc_.getSchema());
+
+    devModeEnabled_ = isDevModeEnabled();
+
+    const auto uiRoot = juce::SystemStats::getEnvironmentVariable(
+        "AGENTVST_UI_ROOT",
+        juce::String(AGENTVST_UI_ROOT));
+
+    if (uiRoot.isNotEmpty())
+        uiAssetRoot_ = juce::File(uiRoot);
+    else
+        uiAssetRoot_ = juce::File();
+
+    juce::WebBrowserComponent::Options options;
+#if JUCE_WINDOWS
+    options = options.withBackend(juce::WebBrowserComponent::Options::Backend::webview2);
+#endif
+
+    options = options.withKeepPageLoadedWhenBrowserIsHidden()
+                     .withNativeIntegrationEnabled()
+                     .withNativeFunction(
+                         juce::Identifier("agentGetParameter"),
+                         [this](const juce::Array<juce::var>& args,
+                                juce::WebBrowserComponent::NativeFunctionCompletion complete) {
+                             if (args.isEmpty()) {
+                                 complete(juce::var());
+                                 return;
+                             }
+                             complete(getParameterForJs(args[0].toString()));
+                         })
+                     .withNativeFunction(
+                         juce::Identifier("agentSetParameter"),
+                         [this](const juce::Array<juce::var>& args,
+                                juce::WebBrowserComponent::NativeFunctionCompletion complete) {
+                             if (args.size() < 2) {
+                                 complete(juce::var(false));
+                                 return;
+                             }
+
+                             const auto paramId = args[0].toString();
+                             setParameterFromJs(paramId, args[1]);
+                             complete(getParameterForJs(paramId));
+                         })
+                     .withNativeFunction(
+                         juce::Identifier("agentGetAllParameters"),
+                         [this](const juce::Array<juce::var>&,
+                                juce::WebBrowserComponent::NativeFunctionCompletion complete) {
+                             complete(getAllParametersForJs());
+                         })
+                     .withNativeFunction(
+                         juce::Identifier("agentGetMeters"),
+                         [this](const juce::Array<juce::var>&,
+                                juce::WebBrowserComponent::NativeFunctionCompletion complete) {
+                             complete(getMeterSnapshotForJs());
+                         })
+                     .withResourceProvider(
+                         [this](const juce::String& path) {
+                             return provideWebResource(path);
+                         });
+
+    if (!juce::WebBrowserComponent::areOptionsSupported(options))
+        return false;
+
+    webView_ = std::make_unique<juce::WebBrowserComponent>(options);
+    addAndMakeVisible(*webView_);
+
+    if (devModeEnabled_)
+        webView_->goToURL(resolveDevServerUrl());
+    else
+        webView_->goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
+
+    registerParameterListeners();
+    pendingParameterPush_.store(true, std::memory_order_relaxed);
+    startTimerHz(30);
+
+    return true;
+#endif
+}
+
+bool AgentVSTEditor::isDevModeEnabled() const {
+    const auto envValue = juce::SystemStats::getEnvironmentVariable("AGENTVST_DEV_MODE", {});
+    if (envValue.isEmpty())
+        return false;
+
+    return parseBooleanEnvValue(envValue);
+}
+
+juce::String AgentVSTEditor::resolveDevServerUrl() const {
+    auto url = juce::SystemStats::getEnvironmentVariable(
+        "AGENTVST_DEV_SERVER_URL",
+        juce::String(AGENTVST_DEV_SERVER_URL));
+
+    if (url.isEmpty())
+        url = AGENTVST_DEV_SERVER_URL;
+
+    return url;
+}
+
+void AgentVSTEditor::registerParameterListeners() {
+    auto& apvts = proc_.getAPVTS();
+    for (const auto& def : proc_.getSchema().parameters)
+        apvts.addParameterListener(def.id, this);
+}
+
+void AgentVSTEditor::unregisterParameterListeners() {
+    auto& apvts = proc_.getAPVTS();
+    for (const auto& def : proc_.getSchema().parameters)
+        apvts.removeParameterListener(def.id, this);
+}
+
+void AgentVSTEditor::pushParameterSnapshotToWebView() {
+    if (!usingWebView_ || webView_ == nullptr)
+        return;
+
+    webView_->emitEventIfBrowserIsVisible(
+        juce::Identifier("agentParameterSnapshot"),
+        getAllParametersForJs());
+}
+
+void AgentVSTEditor::pushMeterSnapshotToWebView() {
+    if (!usingWebView_ || webView_ == nullptr)
+        return;
+
+    webView_->emitEventIfBrowserIsVisible(
+        juce::Identifier("agentMeterSnapshot"),
+        getMeterSnapshotForJs());
+}
+
+#if JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
+std::optional<juce::WebBrowserComponent::Resource>
+AgentVSTEditor::provideWebResource(const juce::String& rawPath) const {
+    auto path = rawPath.upToFirstOccurrenceOf("?", false, false);
+
+    if (path.startsWithIgnoreCase("https://") || path.startsWithIgnoreCase("juce://")) {
+        const auto afterHost = path.fromFirstOccurrenceOf("/", false, false);
+        path = afterHost.isEmpty() ? "/" : afterHost;
+    }
+
+    if (path.isEmpty())
+        path = "/";
+
+    auto relativePath = path;
+    if (relativePath.startsWithChar('/'))
+        relativePath = relativePath.substring(1);
+
+    if (relativePath.isEmpty())
+        relativePath = "index.html";
+
+    if (relativePath.contains(".."))
+        return std::nullopt;
+
+    if (uiAssetRoot_.isDirectory()) {
+        const auto file = uiAssetRoot_.getChildFile(relativePath);
+        if (file.existsAsFile()) {
+            juce::WebBrowserComponent::Resource resource;
+            resource.data = fileToBytes(file);
+            if (!resource.data.empty()) {
+                resource.mimeType = mimeTypeForPath(file.getFileName());
+                return resource;
+            }
+        }
+    }
+
+    if (path == "/" || path == "/index.html" || path == "index.html") {
+        juce::WebBrowserComponent::Resource resource;
+        resource.data = stringToBytes(webUiHtml_);
+        resource.mimeType = "text/html; charset=utf-8";
+        return resource;
+    }
+
+    return std::nullopt;
+}
+#endif
+
+juce::var AgentVSTEditor::getParameterForJs(const juce::String& paramId) const {
+    const auto* def = proc_.getSchema().findParameter(paramId.toStdString());
+    if (def == nullptr)
+        return juce::var();
+
+    if (auto* parameter = proc_.getAPVTS().getParameter(def->id)) {
+        const auto rawValue = parameter->convertFrom0to1(parameter->getValue());
+
+        if (def->type == "boolean")
+            return juce::var(rawValue >= 0.5f);
+
+        if (def->type == "int")
+            return juce::var(static_cast<int>(std::lround(rawValue)));
+
+        if (def->type == "enum") {
+            auto index = static_cast<int>(std::lround(rawValue));
+            if (!def->enumOptions.empty()) {
+                index = juce::jlimit(0,
+                                     static_cast<int>(def->enumOptions.size()) - 1,
+                                     index);
+            }
+            return juce::var(index);
+        }
+
+        return juce::var(static_cast<double>(rawValue));
+    }
+
+    return juce::var();
+}
+
+juce::var AgentVSTEditor::getAllParametersForJs() const {
+    juce::DynamicObject::Ptr stateObject(new juce::DynamicObject());
+
+    for (const auto& def : proc_.getSchema().parameters)
+        stateObject->setProperty(juce::Identifier(def.id),
+                                 getParameterForJs(juce::String(def.id)));
+
+    return juce::var(stateObject.get());
+}
+
+juce::var AgentVSTEditor::getMeterSnapshotForJs() const {
+    const auto meterSnapshot = proc_.getMeterSnapshot();
+    juce::DynamicObject::Ptr meterObject(new juce::DynamicObject());
+
+    meterObject->setProperty("inputPeakL", meterSnapshot.inputPeakL);
+    meterObject->setProperty("inputPeakR", meterSnapshot.inputPeakR);
+    meterObject->setProperty("inputRmsL", meterSnapshot.inputRmsL);
+    meterObject->setProperty("inputRmsR", meterSnapshot.inputRmsR);
+    meterObject->setProperty("outputPeakL", meterSnapshot.outputPeakL);
+    meterObject->setProperty("outputPeakR", meterSnapshot.outputPeakR);
+    meterObject->setProperty("outputRmsL", meterSnapshot.outputRmsL);
+    meterObject->setProperty("outputRmsR", meterSnapshot.outputRmsR);
+
+    return juce::var(meterObject.get());
+}
+
+void AgentVSTEditor::setParameterFromJs(const juce::String& paramId,
+                                        const juce::var& value) {
+    const auto* def = proc_.getSchema().findParameter(paramId.toStdString());
+    if (def == nullptr)
+        return;
+
+    auto* parameter = proc_.getAPVTS().getParameter(def->id);
+    if (parameter == nullptr)
+        return;
+
+    auto rawValue = static_cast<float>(varToDouble(value));
+
+    if (def->type == "boolean") {
+        const auto boolValue = value.isBool() ? static_cast<bool>(value)
+                                              : (rawValue >= 0.5f);
+        rawValue = boolValue ? 1.0f : 0.0f;
+    } else if (def->type == "int" || def->type == "enum") {
+        rawValue = std::round(rawValue);
+    }
+
+    auto minValue = def->minValue;
+    auto maxValue = def->maxValue;
+
+    if (def->type == "enum") {
+        minValue = 0.0f;
+        if (!def->enumOptions.empty())
+            maxValue = static_cast<float>(def->enumOptions.size() - 1);
+    }
+
+    rawValue = juce::jlimit(minValue, maxValue, rawValue);
+    parameter->setValueNotifyingHost(parameter->convertTo0to1(rawValue));
+}
+#endif
+
+void AgentVSTEditor::parameterChanged(const juce::String& /*parameterID*/,
+                                      float /*newValue*/) {
+#if JUCE_WEB_BROWSER
+    pendingParameterPush_.store(true, std::memory_order_relaxed);
+#endif
+}
+
+void AgentVSTEditor::timerCallback() {
+#if JUCE_WEB_BROWSER
+    if (pendingParameterPush_.exchange(false, std::memory_order_relaxed))
+        pushParameterSnapshotToWebView();
+
+    pushMeterSnapshotToWebView();
+#endif
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Build controls
@@ -98,6 +472,14 @@ int AgentVSTEditor::computeEditorHeight() const {
 }
 
 void AgentVSTEditor::resized() {
+    if (usingWebView_) {
+#if JUCE_WEB_BROWSER
+        if (webView_)
+            webView_->setBounds(getLocalBounds());
+#endif
+        return;
+    }
+
     auto area = getLocalBounds().reduced(kPadding);
 
     // Header area
@@ -135,6 +517,11 @@ void AgentVSTEditor::resized() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 void AgentVSTEditor::paint(juce::Graphics& g) {
+    if (usingWebView_) {
+        g.fillAll(juce::Colours::black);
+        return;
+    }
+
     // Background
     g.fillAll(juce::Colour(0xff1a1a2e));
 

@@ -4,10 +4,16 @@
 
 add_executable(agentvst_tests
     unit/SchemaParserTest.cpp
+    unit/UIGeneratorTest.cpp
     unit/ParameterCacheTest.cpp
     unit/APVTSRoundTripTest.cpp
     unit/BiquadFilterTest.cpp
     unit/GainTest.cpp
+    unit/OscillatorTest.cpp
+    unit/EnvelopeFollowerTest.cpp
+    unit/DelayTest.cpp
+    unit/DSPRouterTest.cpp
+    unit/ProcessBlockHandlerTest.cpp
 )
 
 target_include_directories(agentvst_tests PRIVATE
@@ -22,13 +28,9 @@ target_link_libraries(agentvst_tests PRIVATE
     nlohmann_json::nlohmann_json
 )
 
-# Add the BiquadFilter and Gain source files directly (they are in framework/src/modules)
-target_sources(agentvst_tests PRIVATE
-    "${CMAKE_SOURCE_DIR}/framework/src/modules/BiquadFilter.cpp"
-    "${CMAKE_SOURCE_DIR}/framework/src/modules/Gain.cpp"
-    "${CMAKE_SOURCE_DIR}/framework/src/modules/EnvelopeFollower.cpp"
-    "${CMAKE_SOURCE_DIR}/framework/src/modules/Oscillator.cpp"
-)
+if(MSVC)
+    target_compile_options(agentvst_tests PRIVATE /EHsc)
+endif()
 
 # Register tests with CTest
 include(CTest)

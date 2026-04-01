@@ -48,7 +48,12 @@ void BiquadFilter::computeCoefficients() noexcept {
     const float alpha = sinw0 / (2.0f * q_);
     const float A     = std::pow(10.0f, gainDb_ / 40.0f); // linear amplitude for shelves/peak
 
-    float b0, b1, b2, a0, a1, a2;
+    float b0 = 1.0f;
+    float b1 = 0.0f;
+    float b2 = 0.0f;
+    float a0 = 1.0f;
+    float a1 = 0.0f;
+    float a2 = 0.0f;
 
     switch (type_) {
     case Type::LowPass:
@@ -112,6 +117,9 @@ void BiquadFilter::computeCoefficients() noexcept {
         a0 =              (A+1) - (A-1)*cosw0 + 2.0f*std::sqrt(A)*alpha;
         a1 =        2.0f*((A-1) - (A+1)*cosw0);
         a2 =              (A+1) - (A-1)*cosw0 - 2.0f*std::sqrt(A)*alpha;
+        break;
+
+    default:
         break;
     }
 

@@ -140,6 +140,7 @@ PluginSchema SchemaParser::parseJson(const std::string& jsonStr,
 
 ParameterDef SchemaParser::parseParameter(const void* jsonObj,
                                            const std::string& sourceHint) const {
+    (void)sourceHint;
     const auto& p = *static_cast<const json*>(jsonObj);
 
     if (!p.contains("id") || !p["id"].is_string())

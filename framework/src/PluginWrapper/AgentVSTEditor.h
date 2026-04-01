@@ -15,12 +15,18 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <juce_gui_extra/juce_gui_extra.h>
+#include <atomic>
 #include <memory>
+#include <optional>
+#include <string>
 #include <vector>
 
 namespace AgentVST {
 
-class AgentVSTEditor : public juce::AudioProcessorEditor {
+class AgentVSTEditor : public juce::AudioProcessorEditor,
+                       private juce::AudioProcessorValueTreeState::Listener,
+                       private juce::Timer {
 public:
     explicit AgentVSTEditor(AgentVSTProcessor& processor);
     ~AgentVSTEditor() override;
@@ -30,6 +36,36 @@ public:
 
 private:
     AgentVSTProcessor& proc_;
+    bool usingWebView_ = false;
+
+#if JUCE_WEB_BROWSER
+    std::unique_ptr<juce::WebBrowserComponent> webView_;
+    std::string webUiHtml_;
+    juce::File uiAssetRoot_;
+    bool devModeEnabled_ = false;
+    std::atomic<bool> pendingParameterPush_ { false };
+
+    bool initialiseWebView();
+    bool isDevModeEnabled() const;
+    juce::String resolveDevServerUrl() const;
+    void registerParameterListeners();
+    void unregisterParameterListeners();
+    void pushParameterSnapshotToWebView();
+    void pushMeterSnapshotToWebView();
+
+   #if JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
+    std::optional<juce::WebBrowserComponent::Resource>
+    provideWebResource(const juce::String& path) const;
+   #endif
+
+    juce::var getParameterForJs(const juce::String& paramId) const;
+    juce::var getAllParametersForJs() const;
+    juce::var getMeterSnapshotForJs() const;
+    void setParameterFromJs(const juce::String& paramId, const juce::var& value);
+#endif
+
+    void parameterChanged(const juce::String& parameterID, float newValue) override;
+    void timerCallback() override;
 
     // ── Per-parameter control storage ─────────────────────────────────────────
     struct SliderRow {

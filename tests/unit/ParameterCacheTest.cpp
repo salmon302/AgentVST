@@ -15,7 +15,8 @@ TEST_CASE("ParameterCache: register and read value", "[cache]") {
     cache.registerParameter("gain", &val);
     cache.finalize();
 
-    CHECK(cache.getValue("gain") == Catch::Approx(0.5f));
+    CHECK(cache.getValue("gain") > 0.4999f);
+    CHECK(cache.getValue("gain") < 0.5001f);
 }
 
 TEST_CASE("ParameterCache: reads updated atomic value", "[cache]") {
@@ -25,9 +26,11 @@ TEST_CASE("ParameterCache: reads updated atomic value", "[cache]") {
     cache.registerParameter("freq", &val);
     cache.finalize();
 
-    CHECK(cache.getValue("freq") == Catch::Approx(0.0f));
+    CHECK(cache.getValue("freq") > -0.0001f);
+    CHECK(cache.getValue("freq") < 0.0001f);
     val.store(440.0f, std::memory_order_relaxed);
-    CHECK(cache.getValue("freq") == Catch::Approx(440.0f));
+    CHECK(cache.getValue("freq") > 439.999f);
+    CHECK(cache.getValue("freq") < 440.001f);
 }
 
 TEST_CASE("ParameterCache: unknown id returns 0", "[cache]") {
@@ -54,9 +57,12 @@ TEST_CASE("ParameterCache: multiple parameters", "[cache]") {
     cache.registerParameter("c", &c);
     cache.finalize();
 
-    CHECK(cache.getValue("a") == Catch::Approx(1.0f));
-    CHECK(cache.getValue("b") == Catch::Approx(2.0f));
-    CHECK(cache.getValue("c") == Catch::Approx(3.0f));
+    CHECK(cache.getValue("a") > 0.9999f);
+    CHECK(cache.getValue("a") < 1.0001f);
+    CHECK(cache.getValue("b") > 1.9999f);
+    CHECK(cache.getValue("b") < 2.0001f);
+    CHECK(cache.getValue("c") > 2.9999f);
+    CHECK(cache.getValue("c") < 3.0001f);
     CHECK(cache.size() == 3);
 }
 
@@ -66,3 +72,4 @@ TEST_CASE("ParameterCache: duplicate registration throws", "[cache]") {
     cache.registerParameter("x", &v);
     CHECK_THROWS(cache.registerParameter("x", &v));
 }
+

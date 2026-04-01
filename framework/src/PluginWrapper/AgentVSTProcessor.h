@@ -22,11 +22,13 @@
 #pragma once
 
 #include "AgentDSP.h"
+#include "DSPRouter.h"
 #include "SchemaParser.h"
 #include "ParameterCache.h"
 #include "ProcessBlockHandler.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <atomic>
 #include <memory>
 #include <string>
 
@@ -34,6 +36,17 @@ namespace AgentVST {
 
 class AgentVSTProcessor : public juce::AudioProcessor {
 public:
+    struct MeterSnapshot {
+        float inputPeakL  = 0.0f;
+        float inputPeakR  = 0.0f;
+        float inputRmsL   = 0.0f;
+        float inputRmsR   = 0.0f;
+        float outputPeakL = 0.0f;
+        float outputPeakR = 0.0f;
+        float outputRmsL  = 0.0f;
+        float outputRmsR  = 0.0f;
+    };
+
     AgentVSTProcessor();
     ~AgentVSTProcessor() override;
 
@@ -65,8 +78,10 @@ public:
 
     // ── AgentVST accessors (used by editor) ──────────────────────────────────
     juce::AudioProcessorValueTreeState& getAPVTS()        { return *apvts_; }
+    const juce::AudioProcessorValueTreeState& getAPVTS() const { return *apvts_; }
     const PluginSchema&                 getSchema() const { return schema_; }
     juce::ValueTree&                     getNonParameterState() { return nonParamState_; }
+    MeterSnapshot                        getMeterSnapshot() const noexcept;
 
 private:
     PluginSchema                                         schema_;
@@ -74,10 +89,20 @@ private:
     juce::ValueTree                                       nonParamState_;
     ParameterCache                                       paramCache_;
     std::unique_ptr<IAgentDSP>                           agentDSP_;
+    DSPRouter                                            dspRouter_;
     ProcessBlockHandler                                  blockHandler_;
+    std::atomic<float>                                   inputPeakL_ { 0.0f };
+    std::atomic<float>                                   inputPeakR_ { 0.0f };
+    std::atomic<float>                                   inputRmsL_  { 0.0f };
+    std::atomic<float>                                   inputRmsR_  { 0.0f };
+    std::atomic<float>                                   outputPeakL_{ 0.0f };
+    std::atomic<float>                                   outputPeakR_{ 0.0f };
+    std::atomic<float>                                   outputRmsL_ { 0.0f };
+    std::atomic<float>                                   outputRmsR_ { 0.0f };
 
     juce::AudioProcessorValueTreeState::ParameterLayout buildParameterLayout() const;
     void initParameterCache();
+    void initDSPRouterFromSchema();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AgentVSTProcessor)
 };

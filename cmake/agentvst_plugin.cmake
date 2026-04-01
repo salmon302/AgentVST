@@ -18,7 +18,7 @@
 
 function(agentvst_add_plugin)
     cmake_parse_arguments(PLUGIN ""
-        "NAME;SCHEMA;VENDOR;VERSION;CATEGORY"
+        "NAME;SCHEMA;VENDOR;VERSION;CATEGORY;UI_ROOT;DEV_SERVER_URL"
         "SOURCES"
         ${ARGN})
 
@@ -42,6 +42,14 @@ function(agentvst_add_plugin)
     endif()
     if(NOT PLUGIN_CATEGORY)
         set(PLUGIN_CATEGORY "Fx")
+    endif()
+    if(NOT PLUGIN_DEV_SERVER_URL)
+        set(PLUGIN_DEV_SERVER_URL "http://127.0.0.1:5173")
+    endif()
+
+    set(_UI_ROOT "")
+    if(PLUGIN_UI_ROOT)
+        file(TO_CMAKE_PATH "${PLUGIN_UI_ROOT}" _UI_ROOT)
     endif()
 
     # ── Generate deterministic IDs ────────────────────────────────────────────
@@ -99,7 +107,7 @@ function(agentvst_add_plugin)
     # ── Compile definitions ───────────────────────────────────────────────────
     # Convert schema path to a compile-time string constant
     target_compile_definitions(${PLUGIN_NAME} PRIVATE
-        JUCE_WEB_BROWSER=0
+        JUCE_WEB_BROWSER=1
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
         JUCE_DISPLAY_SPLASH_SCREEN=0
@@ -107,6 +115,8 @@ function(agentvst_add_plugin)
         AGENTVST_PLUGIN_NAME="${PLUGIN_NAME}"
         AGENTVST_PLUGIN_VENDOR="${PLUGIN_VENDOR}"
         AGENTVST_PLUGIN_VERSION="${PLUGIN_VERSION}"
+        AGENTVST_UI_ROOT="${_UI_ROOT}"
+        AGENTVST_DEV_SERVER_URL="${PLUGIN_DEV_SERVER_URL}"
     )
 
     # ── Include paths ─────────────────────────────────────────────────────────

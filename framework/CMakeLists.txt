@@ -12,8 +12,14 @@ add_library(agentvst_framework STATIC
     src/AgentDSP.cpp
     src/SchemaParser.cpp
     src/ParameterCache.cpp
+    src/DSPRouter.cpp
     src/UIGenerator.cpp
     src/ProcessBlockHandler.cpp
+    src/modules/BiquadFilter.cpp
+    src/modules/EnvelopeFollower.cpp
+    src/modules/Gain.cpp
+    src/modules/Oscillator.cpp
+    src/modules/Delay.cpp
 )
 
 # Public headers — consumers see these
@@ -29,7 +35,7 @@ target_include_directories(agentvst_framework PRIVATE
 )
 
 target_compile_definitions(agentvst_framework PUBLIC
-    JUCE_WEB_BROWSER=0
+    JUCE_WEB_BROWSER=1
     JUCE_USE_CURL=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
 )
@@ -45,7 +51,7 @@ target_link_libraries(agentvst_framework PUBLIC
 
 # Compiler warnings
 if(MSVC)
-    target_compile_options(agentvst_framework PRIVATE /W4)
+    target_compile_options(agentvst_framework PRIVATE /W4 /EHsc)
 else()
     target_compile_options(agentvst_framework PRIVATE -Wall -Wextra -Wpedantic)
 endif()

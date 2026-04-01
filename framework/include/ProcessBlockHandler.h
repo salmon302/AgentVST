@@ -23,6 +23,8 @@
 
 namespace AgentVST {
 
+class DSPRouter;
+
 class ProcessBlockHandler {
 public:
     ProcessBlockHandler() = default;
@@ -41,6 +43,10 @@ public:
      * @param paramCache    Reference to the initialized ParameterCache
      */
     void setAgentDSP(IAgentDSP* agentDSP, const ParameterCache& paramCache);
+
+    /// Optional router. If configured, processBlock() will route audio through
+    /// DSPRouter instead of calling IAgentDSP::processSample directly.
+    void setDSPRouter(DSPRouter* router);
 
     /**
      * @param budgetFraction  Fraction of buffer duration to allow for DSP.
@@ -83,6 +89,7 @@ public:
 private:
     IAgentDSP*           agentDSP_    = nullptr;
     const ParameterCache* paramCache_ = nullptr;
+    DSPRouter*            router_      = nullptr;
 
     double sampleRate_      = 44100.0;
     int    maxBlockSize_    = 512;

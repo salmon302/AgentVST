@@ -11,9 +11,9 @@
 using AgentVST::SchemaParser;
 using AgentVST::PluginSchema;
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 static PluginSchema parse(const std::string& json) {
     SchemaParser p;
     return p.parseString(json);
@@ -33,9 +33,9 @@ static void expectError(const std::string& json, const std::string& fragment) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Metadata
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 TEST_CASE("SchemaParser: metadata is parsed correctly", "[schema][metadata]") {
     auto schema = parse(R"({
         "plugin": {
@@ -60,9 +60,9 @@ TEST_CASE("SchemaParser: missing plugin block uses defaults", "[schema][metadata
     CHECK(schema.metadata.version == "1.0.0");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Float parameters
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 TEST_CASE("SchemaParser: float parameter parsed correctly", "[schema][parameter]") {
     auto schema = parse(R"({
         "parameters": [{
@@ -87,13 +87,14 @@ TEST_CASE("SchemaParser: float parameter parsed correctly", "[schema][parameter]
     CHECK(p.maxValue     == 20000.0f);
     CHECK(p.defaultValue == 1000.0f);
     CHECK(p.unit         == "Hz");
-    CHECK(p.skew         == Catch::Approx(0.3f));
+    CHECK(p.skew > 0.2999f);
+    CHECK(p.skew < 0.3001f);
     CHECK(p.step         == 1.0f);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Boolean parameters
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 TEST_CASE("SchemaParser: boolean parameter parsed correctly", "[schema][parameter]") {
     auto schema = parse(R"({
         "parameters": [{
@@ -113,9 +114,9 @@ TEST_CASE("SchemaParser: boolean parameter parsed correctly", "[schema][paramete
     CHECK(p.step         == 1.0f);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Enum parameters
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 TEST_CASE("SchemaParser: enum parameter parsed correctly", "[schema][parameter]") {
     auto schema = parse(R"({
         "parameters": [{
@@ -134,13 +135,15 @@ TEST_CASE("SchemaParser: enum parameter parsed correctly", "[schema][parameter]"
     CHECK(p.enumOptions[0] == "Low-Pass");
     CHECK(p.enumOptions[1] == "High-Pass");
     CHECK(p.enumOptions[2] == "Band-Pass");
-    CHECK(p.defaultValue   == Catch::Approx(1.0f));
-    CHECK(p.maxValue       == Catch::Approx(2.0f));
+    CHECK(p.defaultValue > 0.9999f);
+    CHECK(p.defaultValue < 1.0001f);
+    CHECK(p.maxValue > 1.9999f);
+    CHECK(p.maxValue < 2.0001f);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Groups
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 TEST_CASE("SchemaParser: groups parsed correctly", "[schema][groups]") {
     auto schema = parse(R"({
         "parameters": [
@@ -160,9 +163,9 @@ TEST_CASE("SchemaParser: groups parsed correctly", "[schema][groups]") {
     CHECK(schema.groups[0].parameterIds[1] == "bypass");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Error cases — these should all throw with meaningful messages
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// Error cases - these should all throw with meaningful messages
+// -----------------------------------------------------------------------------
 TEST_CASE("SchemaParser: invalid JSON throws ParseError", "[schema][errors]") {
     expectError("{ not valid json }", "parse error");
 }
@@ -209,9 +212,9 @@ TEST_CASE("SchemaParser: enum missing options throws ParseError", "[schema][erro
                 "options");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // findParameter
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 TEST_CASE("PluginSchema::findParameter returns correct pointer", "[schema][lookup]") {
     auto schema = parse(R"({
         "parameters": [
@@ -226,3 +229,4 @@ TEST_CASE("PluginSchema::findParameter returns correct pointer", "[schema][looku
     CHECK(schema.findParameter("alpha")->maxValue == 1.0f);
     CHECK(schema.findParameter("beta")->maxValue  == 2.0f);
 }
+

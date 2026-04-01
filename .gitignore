@@ -1,0 +1,65 @@
+# Ignore build outputs
+/build/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+install_manifest.txt
+
+# Visual Studio / MSVC
+.vs/
+*.vcxproj.user
+*.suo
+*.user
+*.VC.db
+*.VC.opendb
+*.sdf
+*.ipch
+*.pdb
+*.ilk
+
+# Compiled object files and libraries
+*.obj
+*.o
+*.lo
+*.slo
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*~
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# Archives
+*.zip
+*.tar
+*.gz
+*.7z
+
+# Testing artifacts
+Testing/
+CTestTestfile.cmake
