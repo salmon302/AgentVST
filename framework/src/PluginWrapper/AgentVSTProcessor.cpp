@@ -129,21 +129,35 @@ AgentVSTProcessor::AgentVSTProcessor()
     // 3.5 Initialize non-parameter state (message-thread-only storage)
     nonParamState_ = juce::ValueTree{"NonParameterState"};
 
-    // 4. Instantiate agent's DSP class
-    auto& factory = getRegisteredDSPFactory();
-    if (factory) {
-        agentDSP_ = factory();
-    } else {
-        // No DSP registered — provide a transparent pass-through
+    // 4. Instantiate agent's DSP class.
+    //    createRegisteredDSP() is defined by the user's AGENTVST_REGISTER_DSP()
+    //    macro.  Calling it directly (rather than going through a static-init
+    //    factory) forces the linker to pull the user's DSP translation unit
+    //    into the plugin DLL even though JUCE routes user sources through a
+    //    static library — see AgentDSP.h for the full rationale.
+    agentDSP_ = createRegisteredDSP();
+    if (agentDSP_ == nullptr) {
         class PassThrough : public IAgentDSP {
         public:
             float processSample(int, float input, const DSPContext&) override { return input; }
         };
         agentDSP_ = std::make_unique<PassThrough>();
-        juce::Logger::writeToLog("AgentVST: No DSP registered. Using pass-through.");
+        juce::Logger::writeToLog("AgentVST: createRegisteredDSP() returned null. Using pass-through.");
     }
 
     initDSPRouterFromSchema();
+
+    blockHandler_.onPotentialNoOp = [pluginName = schema_.metadata.name](double relDiff, int blocks) {
+        juce::Logger::writeToLog(
+            "AgentVST: Potential no-op DSP detected for plugin '" +
+            juce::String(pluginName) +
+            "' (relative diff energy=" + juce::String(relDiff, 12) +
+            ", consecutive blocks=" + juce::String(blocks) + "). "
+            "Check that processSample modifies input under non-bypass settings, "
+            "verify wet/mix defaults are audible, and ensure the deployed .vst3 was "
+            "updated (DAW lock can prevent copy)."
+        );
+    };
 
     blockHandler_.setAgentDSP(agentDSP_.get(), paramCache_);
     blockHandler_.setDSPRouter(&dspRouter_);
@@ -270,6 +284,10 @@ void AgentVSTProcessor::initDSPRouterFromSchema() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 void AgentVSTProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+    sawProcessBlock_.store(false, std::memory_order_relaxed);
+    sawProcessBlockBypassed_.store(false, std::memory_order_relaxed);
+    processCallbackCount_.store(0, std::memory_order_relaxed);
+
     if (dspRouter_.isConfigured()) {
         dspRouter_.prepare(sampleRate, samplesPerBlock);
         dspRouter_.bindParameters(paramCache_);
@@ -299,26 +317,73 @@ void AgentVSTProcessor::releaseResources() {
     outputPeakR_.store(0.0f, std::memory_order_relaxed);
     outputRmsL_.store(0.0f, std::memory_order_relaxed);
     outputRmsR_.store(0.0f, std::memory_order_relaxed);
+    sawProcessBlock_.store(false, std::memory_order_relaxed);
+    sawProcessBlockBypassed_.store(false, std::memory_order_relaxed);
+}
+
+bool AgentVSTProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
+    const auto& mainInput  = layouts.getMainInputChannelSet();
+    const auto& mainOutput = layouts.getMainOutputChannelSet();
+
+    const bool inputSupported =
+        (mainInput == juce::AudioChannelSet::mono()) ||
+        (mainInput == juce::AudioChannelSet::stereo());
+    const bool outputSupported =
+        (mainOutput == juce::AudioChannelSet::mono()) ||
+        (mainOutput == juce::AudioChannelSet::stereo());
+
+    if (!inputSupported || !outputSupported)
+        return false;
+
+    // Non-synth effect: keep input/output layouts symmetric.
+    return mainInput == mainOutput;
 }
 
 void AgentVSTProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                       juce::MidiBuffer& midi) {
     juce::ScopedNoDenormals noDenormals;
 
-    const auto inputL = computeChannelMeters(buffer, 0);
-    const auto inputR = buffer.getNumChannels() > 1 ? computeChannelMeters(buffer, 1)
-                                                     : inputL;
+    sawProcessBlock_.store(true, std::memory_order_relaxed);
+    processCallbackCount_.fetch_add(1, std::memory_order_relaxed);
 
-    // Get host position info
-    juce::AudioPlayHead::CurrentPositionInfo posInfo;
-    if (auto* hostPlayHead = getPlayHead())
-        hostPlayHead->getCurrentPosition(posInfo);
+    const int totalInputChannels  = getTotalNumInputChannels();
+    const int totalOutputChannels = getTotalNumOutputChannels();
+    const int bufferChannels      = buffer.getNumChannels();
 
-    blockHandler_.processBlock(buffer, midi, posInfo);
+    // Explicitly clear channels that have no input source.
+    for (int ch = totalInputChannels; ch < totalOutputChannels && ch < bufferChannels; ++ch)
+        buffer.clear(ch, 0, buffer.getNumSamples());
 
-    const auto outputL = computeChannelMeters(buffer, 0);
-    const auto outputR = buffer.getNumChannels() > 1 ? computeChannelMeters(buffer, 1)
-                                                      : outputL;
+    const int processingChannels = juce::jmin(totalInputChannels, totalOutputChannels, bufferChannels);
+    if (processingChannels <= 0) {
+        buffer.clear();
+        return;
+    }
+
+    auto* const* writePointers = buffer.getArrayOfWritePointers();
+    juce::AudioBuffer<float> processingView(writePointers,
+                                            processingChannels,
+                                            buffer.getNumSamples());
+
+    const auto inputL = computeChannelMeters(processingView, 0);
+    const auto inputR = processingChannels > 1 ? computeChannelMeters(processingView, 1)
+                                                : inputL;
+
+    // Get host position info (JUCE 8: getPosition() replaces deprecated getCurrentPosition())
+    juce::AudioPlayHead::CurrentPositionInfo posInfo{};
+    if (auto* playHead = getPlayHead()) {
+        if (auto pos = playHead->getPosition()) {
+            posInfo.isPlaying   = pos->getIsPlaying();
+            posInfo.bpm         = pos->getBpm().orFallback(120.0);
+            posInfo.ppqPosition = pos->getPpqPosition().orFallback(0.0);
+        }
+    }
+
+    blockHandler_.processBlock(processingView, midi, posInfo);
+
+    const auto outputL = computeChannelMeters(processingView, 0);
+    const auto outputR = processingChannels > 1 ? computeChannelMeters(processingView, 1)
+                                                 : outputL;
 
     inputPeakL_.store(inputL.peak, std::memory_order_relaxed);
     inputPeakR_.store(inputR.peak, std::memory_order_relaxed);
@@ -328,6 +393,19 @@ void AgentVSTProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     outputPeakR_.store(outputR.peak, std::memory_order_relaxed);
     outputRmsL_.store(outputL.rms, std::memory_order_relaxed);
     outputRmsR_.store(outputR.rms, std::memory_order_relaxed);
+}
+
+void AgentVSTProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer,
+                                              juce::MidiBuffer& /*midi*/) {
+    sawProcessBlockBypassed_.store(true, std::memory_order_relaxed);
+    processCallbackCount_.fetch_add(1, std::memory_order_relaxed);
+
+    const int totalInputChannels  = getTotalNumInputChannels();
+    const int totalOutputChannels = getTotalNumOutputChannels();
+    const int bufferChannels      = buffer.getNumChannels();
+
+    for (int ch = totalInputChannels; ch < totalOutputChannels && ch < bufferChannels; ++ch)
+        buffer.clear(ch, 0, buffer.getNumSamples());
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -356,6 +434,15 @@ AgentVSTProcessor::MeterSnapshot AgentVSTProcessor::getMeterSnapshot() const noe
     snapshot.outputRmsL  = outputRmsL_.load(std::memory_order_relaxed);
     snapshot.outputRmsR  = outputRmsR_.load(std::memory_order_relaxed);
     return snapshot;
+}
+
+bool AgentVSTProcessor::hasSeenAnyProcessCallback() const noexcept {
+    return sawProcessBlock_.load(std::memory_order_relaxed) ||
+           sawProcessBlockBypassed_.load(std::memory_order_relaxed);
+}
+
+std::uint64_t AgentVSTProcessor::processCallbackCount() const noexcept {
+    return processCallbackCount_.load(std::memory_order_relaxed);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

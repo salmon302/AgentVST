@@ -1,0 +1,85 @@
+{
+  "plugin": {
+    "name":     "AgentCompressor",
+    "version":  "1.0.0",
+    "vendor":   "AgentVST",
+    "category": "Dynamics"
+  },
+  "parameters": [
+    {
+      "id":      "threshold_db",
+      "name":    "Threshold",
+      "type":    "float",
+      "min":     -60.0,
+      "max":     0.0,
+      "default": -18.0,
+      "unit":    "dB",
+      "group":   "dynamics"
+    },
+    {
+      "id":      "ratio",
+      "name":    "Ratio",
+      "type":    "float",
+      "min":     1.0,
+      "max":     20.0,
+      "default": 4.0,
+      "unit":    ":1",
+      "skew":    0.5,
+      "group":   "dynamics"
+    },
+    {
+      "id":      "attack_ms",
+      "name":    "Attack",
+      "type":    "float",
+      "min":     0.1,
+      "max":     200.0,
+      "default": 10.0,
+      "unit":    "ms",
+      "skew":    0.4,
+      "group":   "envelope"
+    },
+    {
+      "id":      "release_ms",
+      "name":    "Release",
+      "type":    "float",
+      "min":     10.0,
+      "max":     2000.0,
+      "default": 100.0,
+      "unit":    "ms",
+      "skew":    0.4,
+      "group":   "envelope"
+    },
+    {
+      "id":      "makeup_db",
+      "name":    "Makeup Gain",
+      "type":    "float",
+      "min":     0.0,
+      "max":     24.0,
+      "default": 0.0,
+      "unit":    "dB",
+      "group":   "output"
+    },
+    {
+      "id":      "knee_db",
+      "name":    "Knee",
+      "type":    "float",
+      "min":     0.0,
+      "max":     12.0,
+      "default": 2.0,
+      "unit":    "dB",
+      "group":   "dynamics"
+    },
+    {
+      "id":      "bypass",
+      "name":    "Bypass",
+      "type":    "boolean",
+      "default": false,
+      "group":   "output"
+    }
+  ],
+  "groups": [
+    { "id": "dynamics", "name": "Dynamics",  "parameters": ["threshold_db", "ratio", "knee_db"] },
+    { "id": "envelope", "name": "Envelope",  "parameters": ["attack_ms", "release_ms"] },
+    { "id": "output",   "name": "Output",    "parameters": ["makeup_db", "bypass"] }
+  ]
+}

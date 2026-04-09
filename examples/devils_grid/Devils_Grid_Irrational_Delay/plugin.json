@@ -1,0 +1,144 @@
+{
+  "plugin": {
+    "name": "Devils Grid Irrational Delay",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Delay"
+  },
+  "parameters": [
+    {
+      "id": "note_division",
+      "name": "Note Division",
+      "type": "enum",
+      "options": [
+        "1/1",
+        "1/2",
+        "1/4",
+        "1/8",
+        "1/16",
+        "1/8T"
+      ],
+      "default": 3,
+      "group": "rhythm"
+    },
+    {
+      "id": "irrational_mode",
+      "name": "Irrational Mode",
+      "type": "enum",
+      "options": [
+        "x_sqrt2",
+        "x_inv_sqrt2"
+      ],
+      "default": 0,
+      "group": "rhythm"
+    },
+    {
+      "id": "time_scale",
+      "name": "Time Scale",
+      "type": "float",
+      "min": 0.25,
+      "max": 4.0,
+      "default": 1.0,
+      "unit": "x",
+      "step": 0.01,
+      "skew": 1.0,
+      "group": "rhythm"
+    },
+    {
+      "id": "stereo_offset",
+      "name": "Stereo Offset",
+      "type": "float",
+      "min": 0.0,
+      "max": 0.25,
+      "default": 0.06,
+      "unit": "ratio",
+      "step": 0.001,
+      "skew": 1.0,
+      "group": "motion"
+    },
+    {
+      "id": "drift_amount",
+      "name": "Drift Amount",
+      "type": "float",
+      "min": 0.0,
+      "max": 0.1,
+      "default": 0.02,
+      "unit": "ratio",
+      "step": 0.001,
+      "skew": 1.0,
+      "group": "motion"
+    },
+    {
+      "id": "drift_rate_hz",
+      "name": "Drift Rate",
+      "type": "float",
+      "min": 0.02,
+      "max": 2.0,
+      "default": 0.25,
+      "unit": "Hz",
+      "step": 0.01,
+      "skew": 0.6,
+      "group": "motion"
+    },
+    {
+      "id": "feedback",
+      "name": "Feedback",
+      "type": "float",
+      "min": 0.0,
+      "max": 0.95,
+      "default": 0.45,
+      "unit": "ratio",
+      "step": 0.01,
+      "skew": 1.0,
+      "group": "output"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.35,
+      "unit": "ratio",
+      "step": 0.01,
+      "skew": 1.0,
+      "group": "output"
+    },
+    {
+      "id": "bypass",
+      "name": "Bypass",
+      "type": "boolean",
+      "default": false,
+      "group": "output"
+    }
+  ],
+  "groups": [
+    {
+      "id": "rhythm",
+      "name": "Rhythm",
+      "parameters": [
+        "note_division",
+        "irrational_mode",
+        "time_scale"
+      ]
+    },
+    {
+      "id": "motion",
+      "name": "Motion",
+      "parameters": [
+        "stereo_offset",
+        "drift_amount",
+        "drift_rate_hz"
+      ]
+    },
+    {
+      "id": "output",
+      "name": "Output",
+      "parameters": [
+        "feedback",
+        "mix",
+        "bypass"
+      ]
+    }
+  ]
+}

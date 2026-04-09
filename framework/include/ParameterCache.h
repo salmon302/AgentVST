@@ -66,6 +66,18 @@ public:
      */
     [[nodiscard]] std::atomic<float>* getPointer(const std::string& id) const noexcept;
 
+    /**
+     * Resolve a parameter ID to its internal index.
+     * Returns true and writes index on success.
+     */
+    [[nodiscard]] bool tryGetIndex(const std::string& id, std::size_t& index) const noexcept;
+
+    /**
+     * Copy all current parameter values into destination.
+     * Reads each atomic with memory_order_relaxed.
+     */
+    void copyValuesTo(float* destination, std::size_t count) const noexcept;
+
     // ── Query ─────────────────────────────────────────────────────────────────
 
     bool hasParameter(const std::string& id) const noexcept;

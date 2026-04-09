@@ -18,7 +18,7 @@
 
 function(agentvst_add_plugin)
     cmake_parse_arguments(PLUGIN ""
-        "NAME;SCHEMA;VENDOR;VERSION;CATEGORY;UI_ROOT;DEV_SERVER_URL"
+        "NAME;SCHEMA;VENDOR;VERSION;CATEGORY;UI_ROOT;DEV_SERVER_URL;PLUGIN_CODE"
         "SOURCES"
         ${ARGN})
 
@@ -47,6 +47,12 @@ function(agentvst_add_plugin)
         set(PLUGIN_DEV_SERVER_URL "http://127.0.0.1:5173")
     endif()
 
+    # Optional: copy built VST3 bundles into a custom dev folder (e.g. Ableton)
+    set(_VST3_DEPLOY_DIR "")
+    if(DEFINED AGENTVST_VST3_DEPLOY_DIR AND NOT "${AGENTVST_VST3_DEPLOY_DIR}" STREQUAL "")
+        file(TO_CMAKE_PATH "${AGENTVST_VST3_DEPLOY_DIR}" _VST3_DEPLOY_DIR)
+    endif()
+
     set(_UI_ROOT "")
     if(PLUGIN_UI_ROOT)
         file(TO_CMAKE_PATH "${PLUGIN_UI_ROOT}" _UI_ROOT)
@@ -62,8 +68,31 @@ function(agentvst_add_plugin)
         OUT_PLUGIN_CODE     PLUGIN_CODE
     )
 
+    if(PLUGIN_PLUGIN_CODE)
+        string(LENGTH "${PLUGIN_PLUGIN_CODE}" _plugin_code_length)
+        if(NOT _plugin_code_length EQUAL 4)
+            message(FATAL_ERROR "agentvst_add_plugin: PLUGIN_CODE must be exactly 4 ASCII characters.")
+        endif()
+        string(REGEX MATCH "^[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]$" _plugin_code_ascii "${PLUGIN_PLUGIN_CODE}")
+        if(NOT _plugin_code_ascii)
+            message(FATAL_ERROR "agentvst_add_plugin: PLUGIN_CODE must contain exactly 4 alphanumeric ASCII characters.")
+        endif()
+        set(PLUGIN_CODE "${PLUGIN_PLUGIN_CODE}")
+    endif()
+
+    # Validate uniqueness within this CMake configure to prevent accidental
+    # VST3 class-ID collisions when plugin names share prefixes.
+    get_property(_existing_plugin_for_code GLOBAL PROPERTY "AGENTVST_PLUGIN_CODE_${PLUGIN_CODE}")
+    if(_existing_plugin_for_code AND NOT "${_existing_plugin_for_code}" STREQUAL "${PLUGIN_NAME}")
+        message(FATAL_ERROR
+            "agentvst_add_plugin: PLUGIN_CODE '${PLUGIN_CODE}' is already used by '${_existing_plugin_for_code}'. "
+            "Set a unique PLUGIN_CODE in agentvst_add_plugin(...).")
+    endif()
+    set_property(GLOBAL PROPERTY "AGENTVST_PLUGIN_CODE_${PLUGIN_CODE}" "${PLUGIN_NAME}")
+
     message(STATUS "[AgentVST] Plugin '${PLUGIN_NAME}' (v${PLUGIN_VERSION})")
     message(STATUS "  Vendor  : ${PLUGIN_VENDOR}")
+    message(STATUS "  JUCE Code: ${PLUGIN_CODE}")
     message(STATUS "  VST3 CID: ${VST3_CID}")
     message(STATUS "  AU Bundle: ${AU_BUNDLE}")
 
@@ -74,6 +103,15 @@ function(agentvst_add_plugin)
     endif()
 
     # ── Create JUCE plugin target ─────────────────────────────────────────────
+    set(_COPY_PLUGIN_AFTER_BUILD FALSE)
+    if(_VST3_DEPLOY_DIR)
+        set(_COPY_PLUGIN_AFTER_BUILD TRUE)
+        # JUCE resolves copy paths from inherited directory/target properties.
+        # Set the directory property before juce_add_plugin so generated format
+        # targets pick up the custom deployment path.
+        set_property(DIRECTORY PROPERTY JUCE_VST3_COPY_DIR "${_VST3_DEPLOY_DIR}")
+    endif()
+
     juce_add_plugin(${PLUGIN_NAME}
         COMPANY_NAME            "${PLUGIN_VENDOR}"
         BUNDLE_ID               "${AU_BUNDLE}"
@@ -87,8 +125,19 @@ function(agentvst_add_plugin)
         NEEDS_MIDI_OUTPUT       FALSE
         IS_MIDI_EFFECT          FALSE
         EDITOR_WANTS_KEYBOARD_FOCUS FALSE
-        COPY_PLUGIN_AFTER_BUILD FALSE
+        COPY_PLUGIN_AFTER_BUILD ${_COPY_PLUGIN_AFTER_BUILD}
     )
+
+    if(_VST3_DEPLOY_DIR)
+        file(MAKE_DIRECTORY "${_VST3_DEPLOY_DIR}")
+        set_target_properties(${PLUGIN_NAME} PROPERTIES
+            JUCE_VST3_COPY_DIR "${_VST3_DEPLOY_DIR}")
+        if(TARGET ${PLUGIN_NAME}_VST3)
+            set_target_properties(${PLUGIN_NAME}_VST3 PROPERTIES
+                JUCE_VST3_COPY_DIR "${_VST3_DEPLOY_DIR}")
+        endif()
+        message(STATUS "  VST3 Deploy Dir: ${_VST3_DEPLOY_DIR}")
+    endif()
 
     # ── Add framework plugin-wrapper sources ──────────────────────────────────
     # These are compiled per-plugin (not in the shared framework library)

@@ -1,0 +1,22 @@
+{
+  "name": "simple_gain_plus6db",
+  "pluginSpec": "examples/simple_gain/plugin.json",
+  "model": "simple_gain_v1",
+  "sampleRate": 48000,
+  "durationSeconds": 0.5,
+  "frequencyHz": 1000.0,
+  "inputAmplitude": 0.2,
+  "parameters": {
+    "gain_db": 6.0,
+    "bypass": 0.0
+  },
+  "assertions": {
+    "rmsRatio": {
+      "expected": 1.995262,
+      "tolerance": 0.01
+    },
+    "maxAbs": {
+      "lte": 0.45
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "compressor_heavy_makeup6db",
+  "pluginSpec": "examples/compressor/plugin.json",
+  "model": "compressor_v1",
+  "sampleRate": 48000,
+  "durationSeconds": 0.5,
+  "frequencyHz": 1000.0,
+  "inputAmplitude": 0.8,
+  "parameters": {
+    "threshold_db": -24.0,
+    "ratio": 6.0,
+    "attack_ms": 5.0,
+    "release_ms": 80.0,
+    "makeup_db": 6.0,
+    "knee_db": 2.0,
+    "bypass": 0.0
+  },
+  "assertions": {
+    "rmsRatio": {
+      "expected": 0.405447,
+      "tolerance": 0.004
+    },
+    "maxAbs": {
+      "lte": 1.61
+    }
+  }
+}

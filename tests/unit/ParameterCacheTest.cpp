@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "ParameterCache.h"
 #include <atomic>
+#include <array>
 
 using AgentVST::ParameterCache;
 
@@ -71,5 +72,52 @@ TEST_CASE("ParameterCache: duplicate registration throws", "[cache]") {
     std::atomic<float> v{ 0.0f };
     cache.registerParameter("x", &v);
     CHECK_THROWS(cache.registerParameter("x", &v));
+}
+
+TEST_CASE("ParameterCache: tryGetIndex resolves known ids", "[cache]") {
+    ParameterCache cache;
+    std::atomic<float> a{ 1.0f }, b{ 2.0f };
+    cache.registerParameter("a", &a);
+    cache.registerParameter("b", &b);
+    cache.finalize();
+
+    std::size_t idxA = 999;
+    std::size_t idxB = 999;
+    std::size_t idxM = 999;
+
+    CHECK(cache.tryGetIndex("a", idxA));
+    CHECK(cache.tryGetIndex("b", idxB));
+    CHECK_FALSE(cache.tryGetIndex("missing", idxM));
+    CHECK(idxA != idxB);
+}
+
+TEST_CASE("ParameterCache: copyValuesTo copies relaxed atomic snapshot", "[cache]") {
+    ParameterCache cache;
+    std::atomic<float> a{ -3.0f }, b{ 7.5f };
+    cache.registerParameter("a", &a);
+    cache.registerParameter("b", &b);
+    cache.finalize();
+
+    std::array<float, 2> snapshot{};
+    cache.copyValuesTo(snapshot.data(), snapshot.size());
+
+    std::size_t idxA = 0;
+    std::size_t idxB = 0;
+    REQUIRE(cache.tryGetIndex("a", idxA));
+    REQUIRE(cache.tryGetIndex("b", idxB));
+
+    CHECK(snapshot[idxA] > -3.0001f);
+    CHECK(snapshot[idxA] < -2.9999f);
+    CHECK(snapshot[idxB] > 7.4999f);
+    CHECK(snapshot[idxB] < 7.5001f);
+
+    a.store(1.25f, std::memory_order_relaxed);
+    b.store(-2.0f, std::memory_order_relaxed);
+    cache.copyValuesTo(snapshot.data(), snapshot.size());
+
+    CHECK(snapshot[idxA] > 1.2499f);
+    CHECK(snapshot[idxA] < 1.2501f);
+    CHECK(snapshot[idxB] > -2.0001f);
+    CHECK(snapshot[idxB] < -1.9999f);
 }
 

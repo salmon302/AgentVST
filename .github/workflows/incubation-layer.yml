@@ -1,0 +1,53 @@
+name: Incubation Layer Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - "schema/**"
+      - "scripts/**"
+      - "orchestrator/**"
+      - "tests/audio-fixtures/**"
+      - "docs/prompts/**"
+      - ".github/workflows/incubation-layer.yml"
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - "schema/**"
+      - "scripts/**"
+      - "orchestrator/**"
+      - "tests/audio-fixtures/**"
+      - "docs/prompts/**"
+      - ".github/workflows/incubation-layer.yml"
+
+jobs:
+  validate-incubation:
+    name: Validate Schema + Generator + Orchestrator
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+          pip install -r orchestrator/requirements.txt
+
+      - name: Validate canonical and example specs
+        run: python scripts/validate_schema.py
+
+      - name: Smoke test scaffold generator
+        run: python scripts/smoke_test_generate.py
+
+      - name: Run audio fixture acceptance tests
+        run: python tests/audio-fixtures/run_audio_acceptance.py
+
+      - name: Verify orchestrator import
+        run: python -c "from orchestrator.app import app; print('orchestrator import ok')"

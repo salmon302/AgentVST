@@ -1,0 +1,51 @@
+{
+  "plugin": {
+    "name":     "AgentEQ",
+    "version":  "1.0.0",
+    "vendor":   "AgentVST",
+    "category": "EQ"
+  },
+  "parameters": [
+    {
+      "id": "low_gain_db",  "name": "Low Gain",  "type": "float",
+      "min": -15.0, "max": 15.0, "default": 0.0, "unit": "dB", "group": "low"
+    },
+    {
+      "id": "low_freq_hz",  "name": "Low Freq",  "type": "float",
+      "min": 20.0, "max": 500.0, "default": 80.0, "unit": "Hz",
+      "skew": 0.4, "group": "low"
+    },
+    {
+      "id": "mid_gain_db",  "name": "Mid Gain",  "type": "float",
+      "min": -15.0, "max": 15.0, "default": 0.0, "unit": "dB", "group": "mid"
+    },
+    {
+      "id": "mid_freq_hz",  "name": "Mid Freq",  "type": "float",
+      "min": 200.0, "max": 8000.0, "default": 1000.0, "unit": "Hz",
+      "skew": 0.4, "group": "mid"
+    },
+    {
+      "id": "mid_q",        "name": "Mid Q",     "type": "float",
+      "min": 0.1, "max": 8.0, "default": 0.707, "unit": "", "group": "mid"
+    },
+    {
+      "id": "high_gain_db", "name": "High Gain", "type": "float",
+      "min": -15.0, "max": 15.0, "default": 0.0, "unit": "dB", "group": "high"
+    },
+    {
+      "id": "high_freq_hz", "name": "High Freq", "type": "float",
+      "min": 2000.0, "max": 20000.0, "default": 8000.0, "unit": "Hz",
+      "skew": 0.4, "group": "high"
+    },
+    {
+      "id": "bypass", "name": "Bypass", "type": "boolean",
+      "default": false, "group": "output"
+    }
+  ],
+  "groups": [
+    { "id": "low",    "name": "Low Shelf",  "parameters": ["low_gain_db",  "low_freq_hz"] },
+    { "id": "mid",    "name": "Mid Peak",   "parameters": ["mid_gain_db",  "mid_freq_hz", "mid_q"] },
+    { "id": "high",   "name": "High Shelf", "parameters": ["high_gain_db", "high_freq_hz"] },
+    { "id": "output", "name": "Output",     "parameters": ["bypass"] }
+  ]
+}

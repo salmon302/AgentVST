@@ -1,0 +1,106 @@
+{
+  "plugin": {
+    "name": "SchemaExampleToneShaper",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "input_gain_db",
+      "name": "Input Gain",
+      "type": "float",
+      "min": -24.0,
+      "max": 24.0,
+      "default": 0.0,
+      "unit": "dB",
+      "step": 0.1,
+      "group": "input"
+    },
+    {
+      "id": "cutoff_hz",
+      "name": "Cutoff",
+      "type": "float",
+      "min": 20.0,
+      "max": 18000.0,
+      "default": 1800.0,
+      "unit": "Hz",
+      "skew": 0.3,
+      "group": "filter"
+    },
+    {
+      "id": "resonance",
+      "name": "Resonance",
+      "type": "float",
+      "min": 0.1,
+      "max": 8.0,
+      "default": 0.707,
+      "unit": "Q",
+      "group": "filter"
+    },
+    {
+      "id": "mode",
+      "name": "Mode",
+      "type": "enum",
+      "options": [
+        "Clean",
+        "Warm",
+        "Bright"
+      ],
+      "default": 0,
+      "group": "character"
+    },
+    {
+      "id": "bypass",
+      "name": "Bypass",
+      "type": "boolean",
+      "default": false,
+      "group": "output"
+    }
+  ],
+  "groups": [
+    {
+      "id": "input",
+      "name": "Input",
+      "parameters": [
+        "input_gain_db"
+      ]
+    },
+    {
+      "id": "filter",
+      "name": "Filter",
+      "parameters": [
+        "cutoff_hz",
+        "resonance"
+      ]
+    },
+    {
+      "id": "character",
+      "name": "Character",
+      "parameters": [
+        "mode"
+      ]
+    },
+    {
+      "id": "output",
+      "name": "Output",
+      "parameters": [
+        "bypass"
+      ]
+    }
+  ],
+  "dsp_routing": [
+    {
+      "source": "input",
+      "destination": "tone_filter",
+      "parameter_link": {
+        "cutoff_hz": "frequency",
+        "resonance": "q"
+      }
+    },
+    {
+      "source": "tone_filter",
+      "destination": "output"
+    }
+  ]
+}

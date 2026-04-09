@@ -27,6 +27,7 @@ TEST_CASE("UIGenerator: generated JS includes native bridge and snapshot hooks",
 
     UIGenerator generator;
     const auto js = generator.generateJS(schema);
+    INFO(js);
 
     CHECK(js.find("agentSetParameter") != std::string::npos);
     CHECK(js.find("agentGetAllParameters") != std::string::npos);

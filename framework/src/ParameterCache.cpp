@@ -1,5 +1,7 @@
 #include "ParameterCache.h"
 
+#include <algorithm>
+
 namespace AgentVST {
 
 void ParameterCache::registerParameter(const std::string& id, std::atomic<float>* ptr) {
@@ -35,6 +37,30 @@ std::atomic<float>* ParameterCache::getPointer(const std::string& id) const noex
     if (it == idToIndex_.end())
         return nullptr;
     return entries_[it->second].ptr;
+}
+
+bool ParameterCache::tryGetIndex(const std::string& id, std::size_t& index) const noexcept {
+    auto it = idToIndex_.find(id);
+    if (it == idToIndex_.end())
+        return false;
+    index = it->second;
+    return true;
+}
+
+void ParameterCache::copyValuesTo(float* destination, std::size_t count) const noexcept {
+    if (destination == nullptr || count == 0)
+        return;
+
+    const std::size_t n = std::min(count, entries_.size());
+    for (std::size_t i = 0; i < n; ++i) {
+        const auto* ptr = entries_[i].ptr;
+        destination[i] = (ptr != nullptr)
+            ? ptr->load(std::memory_order_relaxed)
+            : 0.0f;
+    }
+
+    for (std::size_t i = n; i < count; ++i)
+        destination[i] = 0.0f;
 }
 
 bool ParameterCache::hasParameter(const std::string& id) const noexcept {

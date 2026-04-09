@@ -1,5 +1,6 @@
 # Ignore build outputs
 /build/
+/generated/
 
 # CMake generated files
 CMakeFiles/

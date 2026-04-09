@@ -1,0 +1,268 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   AgentVST Default Plugin UI — Dark Theme
+   JUCE 8 WebView compatible (no ES modules, no build step required)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --bg:           #111827;
+  --surface:      #1f2937;
+  --surface-alt:  #374151;
+  --accent:       #3b82f6;
+  --accent-hover: #2563eb;
+  --danger:       #ef4444;
+  --text:         #f9fafb;
+  --text-muted:   #9ca3af;
+  --border:       #374151;
+  --track-bg:     #374151;
+  --thumb-color:  #3b82f6;
+  --thumb-hover:  #60a5fa;
+  --header-h:     44px;
+  --footer-h:     24px;
+  --padding:      14px;
+  --row-h:        48px;
+  --radius:       6px;
+  --font:         'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width:  100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Root layout ─────────────────────────────────────────────────────────── */
+.plugin-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.plugin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-h);
+  padding: 0 var(--padding);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.plugin-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.plugin-version {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ── Controls area ───────────────────────────────────────────────────────── */
+.controls-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--padding);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-content: flex-start;
+}
+
+.loading {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Parameter group card ────────────────────────────────────────────────── */
+.param-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  min-width: 220px;
+  flex: 1;
+}
+
+.param-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Individual parameter row ────────────────────────────────────────────── */
+.param-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.param-row:last-child { margin-bottom: 0; }
+
+.param-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.param-name {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.param-value-display {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  min-width: 56px;
+  text-align: right;
+}
+
+/* ── Range slider ────────────────────────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--track-bg);
+  outline: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+input[type="range"]:hover { opacity: 0.9; }
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--thumb-color);
+  border: 2px solid var(--bg);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--thumb-hover);
+  transform: scale(1.25);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--thumb-color);
+  border: 2px solid var(--bg);
+  cursor: pointer;
+}
+
+/* ── Checkbox / toggle ───────────────────────────────────────────────────── */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.toggle-row:last-child { margin-bottom: 0; }
+
+.toggle-name { font-size: 12px; color: var(--text-muted); }
+
+.toggle-switch {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.toggle-switch input { display: none; }
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: var(--track-bg);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle-switch input:checked + .toggle-track { background: var(--accent); }
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 0.2s;
+  pointer-events: none;
+}
+.toggle-switch input:checked ~ .toggle-thumb { transform: translateX(18px); }
+
+/* ── Select / dropdown ───────────────────────────────────────────────────── */
+.combo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.combo-row:last-child { margin-bottom: 0; }
+.combo-name { font-size: 12px; color: var(--text-muted); }
+
+select {
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  flex: 1;
+  max-width: 140px;
+}
+select:focus { border-color: var(--accent); }
+
+/* ── Footer / status bar ─────────────────────────────────────────────────── */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--footer-h);
+  padding: 0 var(--padding);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.watchdog-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e; /* green = OK */
+  transition: background 0.3s;
+}
+.watchdog-indicator.violation { background: var(--danger); }
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }

@@ -10,8 +10,8 @@
 #pragma once
 
 #include <string>
+#include <cstddef>
 #include <memory>
-#include <functional>
 #include <unordered_map>
 
 namespace AgentVST {
@@ -45,6 +45,8 @@ struct DSPContext {
 
     // ── Internal — set by the framework, not by the agent ─────────────────────
     const ParameterCache* _paramCache = nullptr;
+    const float*          _paramSnapshotValues = nullptr;
+    std::size_t           _paramSnapshotCount  = 0;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -89,12 +91,20 @@ public:
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Registration system (used internally by AGENTVST_REGISTER_DSP macro)
+// Registration system
+//
+// The user's plugin provides this function via the AGENTVST_REGISTER_DSP()
+// macro below.  It is called once, from the AgentVSTProcessor constructor.
+//
+// Rationale: JUCE's juce_add_plugin() places user sources into a STATIC
+// library (${target}_SharedCode.lib).  With file-scope static initializers
+// in an anonymous namespace, MSVC's linker drops the object file entirely
+// because nothing references it — the initializer never runs and the plugin
+// silently falls back to pass-through.  Declaring a named function in the
+// AgentVST namespace and calling it explicitly from the wrapper forces the
+// linker to pull the user's object file into the final DLL.
 // ─────────────────────────────────────────────────────────────────────────────
-using DSPFactory = std::function<std::unique_ptr<IAgentDSP>()>;
-
-void        registerDSP(DSPFactory factory);
-DSPFactory& getRegisteredDSPFactory();
+std::unique_ptr<IAgentDSP> createRegisteredDSP();
 
 } // namespace AgentVST
 
@@ -102,24 +112,16 @@ DSPFactory& getRegisteredDSPFactory();
 // AGENTVST_REGISTER_DSP(ClassName)
 //
 // Place this macro once in the .cpp file that defines your DSP class.
-// It registers a factory function that the framework uses to instantiate
-// your processor at plugin load time.
+// It defines AgentVST::createRegisteredDSP() which the framework calls at
+// plugin load time.
 //
 // Example:
 //   class GainProcessor : public AgentVST::IAgentDSP { ... };
 //   AGENTVST_REGISTER_DSP(GainProcessor)
 // ─────────────────────────────────────────────────────────────────────────────
 #define AGENTVST_REGISTER_DSP(ClassName)                                         \
-    namespace {                                                                    \
-        struct _AgentVSTRegistrar_##ClassName {                                    \
-            _AgentVSTRegistrar_##ClassName() {                                     \
-                AgentVST::registerDSP(                                             \
-                    []() -> std::unique_ptr<AgentVST::IAgentDSP> {                 \
-                        return std::make_unique<ClassName>();                      \
-                    }                                                              \
-                );                                                                 \
-            }                                                                      \
-        };                                                                         \
-        static _AgentVSTRegistrar_##ClassName                                      \
-            _agentVST_registrar_##ClassName##_instance;                            \
+    namespace AgentVST {                                                          \
+        std::unique_ptr<IAgentDSP> createRegisteredDSP() {                        \
+            return std::make_unique<ClassName>();                                 \
+        }                                                                         \
     }

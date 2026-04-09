@@ -126,7 +126,11 @@ PluginSchema SchemaParser::parseJson(const std::string& jsonStr,
             r.destination = route.value("destination", "");
             if (r.source.empty() || r.destination.empty())
                 throw ParseError("DSP route missing 'source' or 'destination' in " + sourceHint);
-            if (route.contains("parameter_link") && route["parameter_link"].is_object()) {
+            // Support plural key `parameter_links` (preferred) and legacy `parameter_link`
+            if (route.contains("parameter_links") && route["parameter_links"].is_object()) {
+                for (const auto& [k, v] : route["parameter_links"].items())
+                    r.parameterLinks[k] = v.get<std::string>();
+            } else if (route.contains("parameter_link") && route["parameter_link"].is_object()) {
                 for (const auto& [k, v] : route["parameter_link"].items())
                     r.parameterLinks[k] = v.get<std::string>();
             }

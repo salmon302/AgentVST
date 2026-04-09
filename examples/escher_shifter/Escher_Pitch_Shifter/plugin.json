@@ -1,0 +1,68 @@
+{
+  "plugin": {
+    "name": "Escher Pitch Shifter",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Effect"
+  },
+  "parameters": [
+    {
+      "id": "rate",
+      "name": "Shift Rate",
+      "type": "float",
+      "min": -12.0,
+      "max": 12.0,
+      "default": 6.0,
+      "unit": "st/s",
+      "step": 0.1,
+      "skew": 1.0
+    },
+    {
+      "id": "tritone_blend",
+      "name": "Tritone Blend",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 1.0,
+      "unit": "ratio",
+      "step": 0.01,
+      "skew": 1.0
+    },
+    {
+      "id": "feedback",
+      "name": "Feedback",
+      "type": "float",
+      "min": 0.0,
+      "max": 0.95,
+      "default": 0.0,
+      "unit": "%",
+      "step": 0.01,
+      "skew": 1.0
+    },
+    {
+      "id": "octave_spread",
+      "name": "Octave Spread",
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "default": 2,
+      "unit": "oct"
+    }
+  ],
+  "dsp_routing": [
+    {
+      "source": "input",
+      "destination": "escher_shifter",
+      "parameter_link": {
+        "rate": "escher_shifter.rate",
+        "tritone_blend": "escher_shifter.blend",
+        "feedback": "escher_shifter.feedback",
+        "octave_spread": "escher_shifter.spread"
+      }
+    },
+    {
+      "source": "escher_shifter",
+      "destination": "output"
+    }
+  ]
+}

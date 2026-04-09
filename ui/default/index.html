@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentVST Plugin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="plugin-root" id="pluginRoot">
+    <header class="plugin-header">
+      <div class="plugin-name" id="pluginName">AgentVST Plugin</div>
+      <div class="plugin-version" id="pluginVersion">v1.0.0</div>
+    </header>
+
+    <!-- Parameter controls are injected here by main.js -->
+    <div class="controls-area" id="controlsArea">
+      <div class="loading">Connecting to audio engine…</div>
+    </div>
+
+    <!-- Status bar -->
+    <footer class="status-bar">
+      <span id="statusText">Ready</span>
+      <span class="watchdog-indicator" id="watchdogIndicator" title="DSP watchdog status"></span>
+    </footer>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

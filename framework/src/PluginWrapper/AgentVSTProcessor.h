@@ -29,6 +29,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -56,6 +57,9 @@ public:
 
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     void processBlock(juce::AudioBuffer<double>&, juce::MidiBuffer&) override {}
+    void processBlockBypassed(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
+    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
@@ -65,7 +69,7 @@ public:
     bool acceptsMidi()  const override { return false; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 0.0; }
+    double getTailLengthSeconds() const override { return 0.25; }
 
     int  getNumPrograms()                              override { return 1; }
     int  getCurrentProgram()                           override { return 0; }
@@ -82,6 +86,8 @@ public:
     const PluginSchema&                 getSchema() const { return schema_; }
     juce::ValueTree&                     getNonParameterState() { return nonParamState_; }
     MeterSnapshot                        getMeterSnapshot() const noexcept;
+    bool                                 hasSeenAnyProcessCallback() const noexcept;
+    std::uint64_t                        processCallbackCount() const noexcept;
 
 private:
     PluginSchema                                         schema_;
@@ -99,6 +105,9 @@ private:
     std::atomic<float>                                   outputPeakR_{ 0.0f };
     std::atomic<float>                                   outputRmsL_ { 0.0f };
     std::atomic<float>                                   outputRmsR_ { 0.0f };
+    std::atomic<bool>                                    sawProcessBlock_{ false };
+    std::atomic<bool>                                    sawProcessBlockBypassed_{ false };
+    std::atomic<std::uint64_t>                           processCallbackCount_{ 0 };
 
     juce::AudioProcessorValueTreeState::ParameterLayout buildParameterLayout() const;
     void initParameterCache();

@@ -57,6 +57,28 @@ public:
     }
 };
 
+class PassThroughDSP : public AgentVST::IAgentDSP {
+public:
+    float processSample(int /*channel*/, float input, const AgentVST::DSPContext& /*ctx*/) override {
+        return input;
+    }
+};
+
+class MidBlockParameterMutationDSP : public AgentVST::IAgentDSP {
+public:
+    explicit MidBlockParameterMutationDSP(std::atomic<float>* param)
+        : param_(param) {}
+
+    float processSample(int channel, float /*input*/, const AgentVST::DSPContext& ctx) override {
+        if (channel == 0 && ctx.currentSample == 8 && param_ != nullptr)
+            param_->store(1.0f, std::memory_order_relaxed);
+        return ctx.getParameter("mod");
+    }
+
+private:
+    std::atomic<float>* param_ = nullptr;
+};
+
 AgentVST::DSPRoute route(const char* src, const char* dst) {
     AgentVST::DSPRoute r;
     r.source = src;
@@ -153,5 +175,88 @@ TEST_CASE("ProcessBlockHandler: watchdog flags slow DSP", "[dsp][processblock][w
 
     CHECK(handler.hadWatchdogViolation());
     CHECK(handler.watchdogViolationCount() >= 1);
+}
+
+TEST_CASE("ProcessBlockHandler: no-op detection flags unchanged audio", "[dsp][processblock][noop]") {
+    AgentVST::ProcessBlockHandler handler;
+
+    AgentVST::ParameterCache cache;
+    std::atomic<float> dummy{0.0f};
+    cache.registerParameter("dummy", &dummy);
+    cache.finalize();
+
+    PassThroughDSP dsp;
+    handler.setAgentDSP(&dsp, cache);
+    handler.setNoOpDetectionEnabled(true);
+    handler.setNoOpDetectionThreshold(1.0e-10);
+    handler.setNoOpDetectionConsecutiveBlocks(3);
+    handler.prepare(48000.0, 64);
+
+    juce::MidiBuffer midi;
+    juce::AudioPlayHead::CurrentPositionInfo pos;
+
+    for (int block = 0; block < 3; ++block) {
+        juce::AudioBuffer<float> buffer(1, 64);
+        for (int i = 0; i < 64; ++i)
+            buffer.setSample(0, i, 0.5f);
+        handler.processBlock(buffer, midi, pos);
+    }
+
+    CHECK(handler.hadPotentialNoOp());
+    CHECK(handler.potentialNoOpCount() >= 1);
+}
+
+TEST_CASE("ProcessBlockHandler: no-op detection ignores transformed audio", "[dsp][processblock][noop]") {
+    AgentVST::ProcessBlockHandler handler;
+
+    AgentVST::ParameterCache cache;
+    std::atomic<float> dummy{0.0f};
+    cache.registerParameter("dummy", &dummy);
+    cache.finalize();
+
+    GainDSP dsp(1.5f);
+    handler.setAgentDSP(&dsp, cache);
+    handler.setNoOpDetectionEnabled(true);
+    handler.setNoOpDetectionThreshold(1.0e-10);
+    handler.setNoOpDetectionConsecutiveBlocks(3);
+    handler.prepare(48000.0, 64);
+
+    juce::MidiBuffer midi;
+    juce::AudioPlayHead::CurrentPositionInfo pos;
+
+    for (int block = 0; block < 5; ++block) {
+        juce::AudioBuffer<float> buffer(1, 64);
+        for (int i = 0; i < 64; ++i)
+            buffer.setSample(0, i, 0.5f);
+        handler.processBlock(buffer, midi, pos);
+    }
+
+    CHECK_FALSE(handler.hadPotentialNoOp());
+    CHECK(handler.potentialNoOpCount() == 0);
+}
+
+TEST_CASE("ProcessBlockHandler: parameter reads are snapshotted per block", "[dsp][processblock][params]") {
+    AgentVST::ProcessBlockHandler handler;
+
+    AgentVST::ParameterCache cache;
+    std::atomic<float> mod{0.0f};
+    cache.registerParameter("mod", &mod);
+    cache.finalize();
+
+    MidBlockParameterMutationDSP dsp(&mod);
+    handler.setAgentDSP(&dsp, cache);
+    handler.prepare(48000.0, 64);
+
+    juce::AudioBuffer<float> buffer(1, 32);
+    buffer.clear();
+
+    juce::MidiBuffer midi;
+    juce::AudioPlayHead::CurrentPositionInfo pos;
+    handler.processBlock(buffer, midi, pos);
+
+    for (int i = 0; i < buffer.getNumSamples(); ++i) {
+        CHECK(buffer.getSample(0, i) > -0.0001f);
+        CHECK(buffer.getSample(0, i) < 0.0001f);
+    }
 }
 

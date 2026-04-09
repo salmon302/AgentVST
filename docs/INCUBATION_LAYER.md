@@ -10,7 +10,14 @@ This document summarizes recommended workflows, sample prompts, and minimal quic
 
 1. Edit or create a plugin spec under `schema/` (JSON conforming to the project's schema).
 2. Open the spec file and use the provided Copilot instruction block from `docs/prompts/` (or the example below) to ask Copilot to complete or expand the spec.
-3. Run the local generator (planned: `scripts/generate.py`) to render the JUCE skeleton from the validated JSON.
+3. Validate and generate from the local tooling:
+
+```bash
+python scripts/validate_schema.py schema/example_plugin.json
+python scripts/generate.py --spec schema/example_plugin.json --out generated
+python tests/audio-fixtures/run_audio_acceptance.py
+```
+
 4. Build and run tests using the project's normal CMake workflow.
 
 Windows example (local build):
@@ -21,6 +28,28 @@ cmake --build build --config Debug
 cmake --build build --config Debug --target agentvst_tests
 ```
 
+For local iteration without auto-deploy copy (avoids DAW file-lock failures), use:
+
+```powershell
+.\_configure_only_agentvst.cmd
+```
+
+5. Build VST3 example artifacts and run module validation preflight:
+
+```powershell
+.\_build_and_validate_vst3_examples.cmd
+```
+
+### No-Op DSP Debug Checklist
+
+If a plugin appears to pass audio unchanged, run this checklist before deeper redesign:
+
+1. Confirm parameters are active and not effectively bypassing DSP (for example, wet/mix at 0).
+2. Check runtime logs for `Potential no-op DSP detected` warnings emitted by AgentVST.
+3. Verify your `processSample()` path writes transformed samples for non-silent input.
+4. Confirm deployed plugin copy succeeded; a DAW file lock can prevent `.vst3` replacement and leave stale behavior loaded.
+5. Close host/unload plugin, rebuild, and re-open host to ensure the new binary is running.
+
 ## Quick Start (Remote LLMs: Orchestrator)
 
 1. Post the schema and the prompt to the orchestrator API (stubbed under `orchestrator/`).
@@ -30,9 +59,11 @@ cmake --build build --config Debug --target agentvst_tests
 Example (curl to orchestrator stub):
 
 ```bash
+python orchestrator/app.py
+
 curl -X POST http://localhost:8000/generate \
   -H 'Content-Type: application/json' \
-  -d '{"schemaPath":"schema/example_plugin.json","promptTemplate":"plugin_spec_v1"}'
+  -d '{"schemaPath":"schema/example_plugin.json","outputDir":"generated","force":true}'
 ```
 
 ## Sample Prompt Templates
@@ -52,13 +83,15 @@ System: You are an agent that must return a single JSON object. The object must 
 User: See attached schema file and examples. Produce a plugin spec named "MyPlugin" that demonstrates parameter groups and one DSP routing entry.
 ```
 
-## Repository Layout (recommended additions)
+## Repository Layout
 
 - `schema/` — JSON Schema(s) and example plugin specs.
 - `docs/prompts/` — curated prompt templates (editor and remote).
 - `scripts/generate.py` — template-to-code generator (maps schema → JUCE skeleton).
+- `scripts/validate_schema.py` — canonical schema validation for examples and generated specs.
+- `scripts/smoke_test_generate.py` — smoke test for generation workflow.
 - `orchestrator/` — optional FastAPI service that runs generate→build→test.
-- `tests/audio-fixtures/` — input audio and expected metrics for acceptance testing.
+- `tests/audio-fixtures/` — deterministic acceptance fixtures and runner for core audio behavior checks.
 
 ## Safety and Validation
 
@@ -66,13 +99,14 @@ User: See attached schema file and examples. Produce a plugin spec named "MyPlug
 - Run static analysis (`clang-tidy`, `clang-format`) and build sanitizers (ASan/UBSan) in CI.
 - Sandbox builds and tests in ephemeral environments or containers before merging.
 - Keep human-in-the-loop approval gates for any code that touches real-time audio threads.
+- Include an audibility sanity check in acceptance tests (input vs output relative-difference threshold) to catch accidental pass-through DSP.
 
 ## Next Steps (recommended immediate work)
 
-1. Add `schema/plugin.schema.json` (canonical schema) and one example spec.
-2. Add `docs/prompts/` with the two templates above (Copilot + orchestrator).
-3. Implement `scripts/generate.py` (template-only) and a minimal `orchestrator/` stub.
-4. Add a GitHub Actions template to run generate→build→test on PRs.
+1. Add host-level smoke validation (e.g., pluginval or scripted AudioPluginHost scan) in CI.
+2. Extend schema validation in CI to include generated specs from PR artifacts.
+3. Add sandbox controls for orchestrator execution (timeouts, limited workspace mounts).
+4. Add structured diagnostics schema for orchestrator responses.
 
 ---
 

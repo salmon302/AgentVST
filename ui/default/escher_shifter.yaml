@@ -1,0 +1,52 @@
+layout:
+  type: vertical
+  padding: 20
+  background_color: "#18181b"
+  children:
+    - type: label
+      text: "ESCHER PITCH SHIFTER"
+      style:
+        font_size: 24
+        font_weight: bold
+        text_align: center
+        color: "#f4f4f5"
+        margin_bottom: 20
+    
+    - type: grid
+      columns: 2
+      rows: 2
+      gap: 15
+      children:
+        - type: rotary_knob
+          parameter: "rate"
+          label: "SHIFT RATE"
+          suffix: " st/s"
+          color: "#3b82f6"
+        
+        - type: rotary_knob
+          parameter: "tritone_blend"
+          label: "BLEND"
+          suffix: " %"
+          color: "#10b981"
+
+        - type: rotary_knob
+          parameter: "feedback"
+          label: "FEEDBACK"
+          suffix: " %"
+          color: "#f43f5e"
+
+        - type: rotary_knob
+          parameter: "octave_spread"
+          label: "SPREAD"
+          suffix: " oct"
+          color: "#8b5cf6"
+
+    - type: spacer
+      height: 20
+    
+    - type: label
+      text: "Shepard Illusion | AgentVST 2026"
+      style:
+        font_size: 10
+        text_align: right
+        color: "#71717a"

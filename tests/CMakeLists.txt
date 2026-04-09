@@ -14,6 +14,8 @@ add_executable(agentvst_tests
     unit/DelayTest.cpp
     unit/DSPRouterTest.cpp
     unit/ProcessBlockHandlerTest.cpp
+    integration/FullPipelineTest.cpp
+    integration/StateRoundTripTest.cpp
 )
 
 target_include_directories(agentvst_tests PRIVATE

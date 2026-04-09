@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.22)
 project(AgentVST VERSION 0.1.0 LANGUAGES CXX)
 
+set(AGENTVST_VST3_DEPLOY_DIR "" CACHE PATH
+    "Optional folder to copy built VST3 plugins after build (e.g. Ableton custom VST3 folder)")
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -55,6 +58,18 @@ add_subdirectory(framework)
 option(AGENTVST_BUILD_EXAMPLES "Build example plugins" ON)
 if(AGENTVST_BUILD_EXAMPLES)
     add_subdirectory(examples/simple_gain)
+    add_subdirectory(examples/compressor)
+    add_subdirectory(examples/three_band_eq)
+    add_subdirectory(examples/escher_shifter/Escher_Pitch_Shifter)
+    add_subdirectory(examples/devils_grid/Devils_Grid_Irrational_Delay)
+endif()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLI Tool
+# ─────────────────────────────────────────────────────────────────────────────
+option(AGENTVST_BUILD_CLI "Build the agentvst CLI tool" ON)
+if(AGENTVST_BUILD_CLI)
+    add_subdirectory(cli)
 endif()
 
 # ─────────────────────────────────────────────────────────────────────────────

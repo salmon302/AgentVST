@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentEQ</title>
+  <style>
+    /* ── Design tokens ─────────────────────────────────────────────────────── */
+    :root {
+      --bg:           #111827;
+      --surface:      #1f2937;
+      --surface-alt:  #374151;
+      --accent:       #3b82f6;
+      --accent-glow:  rgba(59,130,246,0.25);
+      --accent-hover: #2563eb;
+      --danger:       #ef4444;
+      --text:         #f9fafb;
+      --text-muted:   #9ca3af;
+      --border:       #374151;
+      --track-bg:     #374151;
+      --thumb-color:  #3b82f6;
+      --thumb-hover:  #60a5fa;
+      --grid-line:    rgba(156,163,175,0.15);
+      --grid-label:   #6b7280;
+      --radius:       6px;
+      --font:         'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Root layout ──────────────────────────────────────────────────────── */
+    .plugin-root {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      min-height: 520px;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────────────── */
+    .plugin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 44px;
+      padding: 0 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .plugin-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .plugin-version {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Bypass toggle in header */
+    .bypass-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .bypass-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input { display: none; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 10px;
+      background: var(--track-bg);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-track { background: var(--danger); }
+    .toggle-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--text);
+      transition: transform 0.2s;
+      pointer-events: none;
+    }
+    .toggle-switch input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+    /* ── Frequency response visualizer ───────────────────────────────────── */
+    .viz-wrapper {
+      padding: 12px 16px 8px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    #eqCanvas {
+      display: block;
+      width: 100%;
+      height: 180px;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      cursor: crosshair;
+    }
+
+    /* ── Controls area ────────────────────────────────────────────────────── */
+    .controls-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 16px 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    /* ── Parameter group card ─────────────────────────────────────────────── */
+    .param-group {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    .param-group-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Individual parameter row ─────────────────────────────────────────── */
+    .param-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+    .param-row:last-child { margin-bottom: 0; }
+
+    .param-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .param-name {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .param-value-display {
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      min-width: 64px;
+      text-align: right;
+    }
+
+    /* ── Range slider ─────────────────────────────────────────────────────── */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--track-bg);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--thumb-color);
+      border: 2px solid var(--bg);
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: var(--thumb-hover);
+      transform: scale(1.25);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--thumb-color);
+      border: 2px solid var(--bg);
+      cursor: pointer;
+    }
+
+    /* ── Footer ───────────────────────────────────────────────────────────── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 24px;
+      padding: 0 16px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .watchdog-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      transition: background 0.3s;
+    }
+    .watchdog-indicator.violation { background: var(--danger); }
+
+    /* ── Scrollbar ────────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* ── Bypass overlay (dims canvas when bypassed) ───────────────────────── */
+    .bypassed #eqCanvas { opacity: 0.35; }
+    .bypassed .controls-area { opacity: 0.5; pointer-events: none; }
+  </style>
+</head>
+<body>
+<div class="plugin-root" id="pluginRoot">
+
+  <!-- Header -->
+  <header class="plugin-header">
+    <div class="plugin-name">AgentEQ</div>
+    <div class="header-right">
+      <span class="plugin-version">v1.0.0</span>
+      <!-- Bypass toggle -->
+      <label class="bypass-label" title="Bypass all EQ bands">
+        <span class="bypass-text">BYPASS</span>
+        <div class="toggle-switch">
+          <input type="checkbox" id="ctrl-bypass">
+          <span class="toggle-track"></span>
+          <span class="toggle-thumb"></span>
+        </div>
+      </label>
+    </div>
+  </header>
+
+  <!-- Frequency response visualizer -->
+  <div class="viz-wrapper">
+    <canvas id="eqCanvas"></canvas>
+  </div>
+
+  <!-- Band control panels -->
+  <div class="controls-area" id="controlsArea">
+
+    <!-- Low Shelf -->
+    <div class="param-group">
+      <div class="param-group-title">Low Shelf</div>
+
+      <div class="param-row">
+        <div class="param-label-row">
+          <span class="param-name">Gain</span>
+          <span class="param-value-display" id="val-low_gain_db">0.00 dB</span>
+        </div>
+        <input type="range" id="ctrl-low_gain_db" min="-15" max="15" step="0.1" value="0">
+      </div>
+
+      <div class="param-row">
+        <div class="param-label-row">
+          <span class="param-name">Frequency</span>
+          <span class="param-value-display" id="val-low_freq_hz">80.0 Hz</span>
+        </div>
+        <input type="range" id="ctrl-low_freq_hz" min="20" max="500" step="1" value="80">
+      </div>
+    </div>
+
+    <!-- Mid Peak -->
+    <div class="param-group">
+      <div class="param-group-title">Mid Peak</div>
+
+      <div class="param-row">
+        <div class="param-label-row">
+          <span class="param-name">Gain</span>
+          <span class="param-value-display" id="val-mid_gain_db">0.00 dB</span>
+        </div>
+        <input type="range" id="ctrl-mid_gain_db" min="-15" max="15" step="0.1" value="0">
+      </div>
+
+      <div class="param-row">
+        <div class="param-label-row">
+          <span class="param-name">Frequency</span>
+          <span class="param-value-display" id="val-mid_freq_hz">1000 Hz</span>
+        </div>
+        <input type="range" id="ctrl-mid_freq_hz" min="200" max="8000" step="1" value="1000">
+      </div>
+
+      <div class="param-row">
+        <div class="param-label-row">
+          <span class="param-name">Q</span>
+          <span class="param-value-display" id="val-mid_q">0.71</span>
+        </div>
+        <input type="range" id="ctrl-mid_q" min="0.1" max="8" step="0.01" value="0.707">
+      </div>
+    </div>
+
+    <!-- High Shelf -->
+    <div class="param-group">
+      <div class="param-group-title">High Shelf</div>
+
+      <div class="param-row">
+        <div class="param-label-row">
+          <span class="param-name">Gain</span>
+          <span class="param-value-display" id="val-high_gain_db">0.00 dB</span>
+        </div>
+        <input type="range" id="ctrl-high_gain_db" min="-15" max="15" step="0.1" value="0">
+      </div>
+
+      <div class="param-row">
+        <div class="param-label-row">
+          <span class="param-name">Frequency</span>
+          <span class="param-value-display" id="val-high_freq_hz">8000 Hz</span>
+        </div>
+        <input type="range" id="ctrl-high_freq_hz" min="2000" max="20000" step="10" value="8000">
+      </div>
+    </div>
+
+  </div><!-- /controls-area -->
+
+  <!-- Footer -->
+  <footer class="status-bar">
+    <span id="statusText">Ready</span>
+    <span class="watchdog-indicator" id="watchdogIndicator"></span>
+  </footer>
+
+</div><!-- /plugin-root -->
+
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+const SAMPLE_RATE  = 44100;
+const FREQ_MIN     = 20;
+const FREQ_MAX     = 20000;
+const DB_MIN       = -20;
+const DB_MAX       = 20;
+
+// Accent color used for the EQ curve (matches CSS --accent)
+const ACCENT_COLOR = '#3b82f6';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// JUCE bridge detection
+// ─────────────────────────────────────────────────────────────────────────────
+const isBrowser = typeof window.__JUCE__ === 'undefined';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parameter definitions
+//   These match plugin.json exactly. They are used for:
+//   - mock defaults in browser dev mode
+//   - label formatting
+//   - skew mapping for log-scale JUCE parameters
+// ─────────────────────────────────────────────────────────────────────────────
+const PARAMS = {
+  low_gain_db:  { min: -15,    max: 15,    default: 0,     unit: 'dB',  decimals: 2 },
+  low_freq_hz:  { min: 20,     max: 500,   default: 80,    unit: 'Hz',  decimals: 0, skew: 0.4 },
+  mid_gain_db:  { min: -15,    max: 15,    default: 0,     unit: 'dB',  decimals: 2 },
+  mid_freq_hz:  { min: 200,    max: 8000,  default: 1000,  unit: 'Hz',  decimals: 0, skew: 0.4 },
+  mid_q:        { min: 0.1,    max: 8.0,   default: 0.707, unit: '',    decimals: 2 },
+  high_gain_db: { min: -15,    max: 15,    default: 0,     unit: 'dB',  decimals: 2 },
+  high_freq_hz: { min: 2000,   max: 20000, default: 8000,  unit: 'Hz',  decimals: 0, skew: 0.4 },
+  bypass:       { default: false }
+};
+
+// Live values used by the canvas renderer
+const state = {
+  low_gain_db:  0,
+  low_freq_hz:  80,
+  mid_gain_db:  0,
+  mid_freq_hz:  1000,
+  mid_q:        0.707,
+  high_gain_db: 0,
+  high_freq_hz: 8000,
+  bypass:       false
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Normalised ↔ plain value helpers (handles optional skew)
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Convert JUCE normalised [0..1] to a plain value, applying skew if present.
+ * JUCE's skewed range maps:  normalised = (value-min)/(max-min) ^ (1/skew)
+ *   → value = min + (max-min) * normalised ^ skew
+ */
+function normToValue(norm, paramDef) {
+  const skew = paramDef.skew || 1;
+  return paramDef.min + (paramDef.max - paramDef.min) * Math.pow(norm, skew);
+}
+
+function valueToNorm(value, paramDef) {
+  const skew = paramDef.skew || 1;
+  const linear = (value - paramDef.min) / (paramDef.max - paramDef.min);
+  return Math.pow(Math.max(0, Math.min(1, linear)), 1 / skew);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Label formatting
+// ─────────────────────────────────────────────────────────────────────────────
+function formatHz(hz) {
+  if (hz >= 1000) return (hz / 1000).toFixed(hz >= 10000 ? 0 : 1) + ' kHz';
+  return Math.round(hz) + ' Hz';
+}
+
+function formatValue(paramId, value) {
+  const def = PARAMS[paramId];
+  if (!def) return String(value);
+  if (paramId === 'low_freq_hz' || paramId === 'mid_freq_hz' || paramId === 'high_freq_hz') {
+    return formatHz(value);
+  }
+  const str = Number(value).toFixed(def.decimals);
+  return def.unit ? str + ' ' + def.unit : str;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Biquad math — Audio EQ Cookbook (Robert Bristow-Johnson)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Compute squared magnitude |H(e^jω)|² of a biquad filter at angular
+ * frequency omega, given coefficients [b0, b1, b2, a0, a1, a2].
+ *
+ * |H|² = (b0²+b1²+b2² + 2(b0*b1+b1*b2)*cos(ω) + 2(b0*b2)*cos(2ω))
+ *       ─────────────────────────────────────────────────────────────
+ *       (a0²+a1²+a2² + 2(a0*a1+a1*a2)*cos(ω) + 2(a0*a2)*cos(2ω))
+ *
+ * This is derived from the z-domain response evaluated on the unit circle.
+ */
+function biquadMagSq(omega, b0, b1, b2, a0, a1, a2) {
+  const c1 = Math.cos(omega);
+  const c2 = Math.cos(2 * omega);
+  const num = b0*b0 + b1*b1 + b2*b2 + 2*(b0*b1 + b1*b2)*c1 + 2*b0*b2*c2;
+  const den = a0*a0 + a1*a1 + a2*a2 + 2*(a0*a1 + a1*a2)*c1 + 2*a0*a2*c2;
+  if (den < 1e-30) return 1;
+  return num / den;
+}
+
+/**
+ * Low-shelf biquad coefficients (RBJ cookbook).
+ *   A     = 10^(dBgain/40)
+ *   omega = 2*pi*Fc/Fs
+ *   S     = shelf slope (1.0 = maximal slope)
+ */
+function lowShelfCoeffs(freq, gainDb) {
+  if (Math.abs(gainDb) < 1e-6) return null; // unity — skip
+  const A  = Math.pow(10, gainDb / 40);
+  const w0 = 2 * Math.PI * freq / SAMPLE_RATE;
+  const cosw0 = Math.cos(w0);
+  const sinw0 = Math.sin(w0);
+  const S  = 1.0; // shelf slope
+  const alpha = sinw0 / 2 * Math.sqrt((A + 1/A) * (1/S - 1) + 2);
+  const sqrtA = Math.sqrt(A);
+  const b0 =        A * ((A+1) - (A-1)*cosw0 + 2*sqrtA*alpha);
+  const b1 =  2  * A * ((A-1) - (A+1)*cosw0);
+  const b2 =        A * ((A+1) - (A-1)*cosw0 - 2*sqrtA*alpha);
+  const a0 =            (A+1) + (A-1)*cosw0 + 2*sqrtA*alpha;
+  const a1 = -2     *  ((A-1) + (A+1)*cosw0);
+  const a2 =            (A+1) + (A-1)*cosw0 - 2*sqrtA*alpha;
+  return [b0, b1, b2, a0, a1, a2];
+}
+
+/**
+ * High-shelf biquad coefficients (RBJ cookbook).
+ */
+function highShelfCoeffs(freq, gainDb) {
+  if (Math.abs(gainDb) < 1e-6) return null;
+  const A  = Math.pow(10, gainDb / 40);
+  const w0 = 2 * Math.PI * freq / SAMPLE_RATE;
+  const cosw0 = Math.cos(w0);
+  const sinw0 = Math.sin(w0);
+  const S  = 1.0;
+  const alpha = sinw0 / 2 * Math.sqrt((A + 1/A) * (1/S - 1) + 2);
+  const sqrtA = Math.sqrt(A);
+  const b0 =        A * ((A+1) + (A-1)*cosw0 + 2*sqrtA*alpha);
+  const b1 = -2  * A * ((A-1) + (A+1)*cosw0);
+  const b2 =        A * ((A+1) + (A-1)*cosw0 - 2*sqrtA*alpha);
+  const a0 =            (A+1) - (A-1)*cosw0 + 2*sqrtA*alpha;
+  const a1 =  2     *  ((A-1) - (A+1)*cosw0);
+  const a2 =            (A+1) - (A-1)*cosw0 - 2*sqrtA*alpha;
+  return [b0, b1, b2, a0, a1, a2];
+}
+
+/**
+ * Peaking EQ biquad coefficients (RBJ cookbook).
+ */
+function peakEqCoeffs(freq, gainDb, Q) {
+  if (Math.abs(gainDb) < 1e-6) return null;
+  const A  = Math.pow(10, gainDb / 40);
+  const w0 = 2 * Math.PI * freq / SAMPLE_RATE;
+  const alpha = Math.sin(w0) / (2 * Q);
+  const cosw0 = Math.cos(w0);
+  const b0 =  1 + alpha * A;
+  const b1 = -2 * cosw0;
+  const b2 =  1 - alpha * A;
+  const a0 =  1 + alpha / A;
+  const a1 = -2 * cosw0;
+  const a2 =  1 - alpha / A;
+  return [b0, b1, b2, a0, a1, a2];
+}
+
+/**
+ * Compute combined magnitude in dB at a given frequency (Hz),
+ * by summing dB contributions of all active biquad filters.
+ */
+function combinedMagDb(freq) {
+  const omega = 2 * Math.PI * freq / SAMPLE_RATE;
+  let magSqTotal = 1;
+
+  const lowCoeffs  = lowShelfCoeffs(state.low_freq_hz, state.low_gain_db);
+  const midCoeffs  = peakEqCoeffs(state.mid_freq_hz, state.mid_gain_db, state.mid_q);
+  const highCoeffs = highShelfCoeffs(state.high_freq_hz, state.high_gain_db);
+
+  if (lowCoeffs)  magSqTotal *= biquadMagSq(omega, ...lowCoeffs);
+  if (midCoeffs)  magSqTotal *= biquadMagSq(omega, ...midCoeffs);
+  if (highCoeffs) magSqTotal *= biquadMagSq(omega, ...highCoeffs);
+
+  return 10 * Math.log10(Math.max(magSqTotal, 1e-30));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Canvas renderer
+// ─────────────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('eqCanvas');
+const ctx    = canvas.getContext('2d');
+
+/** Map a frequency (Hz) to an x-pixel coordinate (log scale). */
+function freqToX(freq, w) {
+  return w * (Math.log10(freq) - Math.log10(FREQ_MIN)) /
+             (Math.log10(FREQ_MAX) - Math.log10(FREQ_MIN));
+}
+
+/** Map a dB value to a y-pixel coordinate. */
+function dbToY(db, h) {
+  return h * (1 - (db - DB_MIN) / (DB_MAX - DB_MIN));
+}
+
+function drawCanvas() {
+  // Sync canvas pixel dimensions to its CSS display size
+  const rect = canvas.getBoundingClientRect();
+  const dpr  = window.devicePixelRatio || 1;
+  const w    = Math.round(rect.width  * dpr);
+  const h    = Math.round(rect.height * dpr);
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width  = w;
+    canvas.height = h;
+  }
+
+  ctx.clearRect(0, 0, w, h);
+
+  // ── Background ──────────────────────────────────────────────────────────
+  ctx.fillStyle = getComputedStyle(document.documentElement)
+    .getPropertyValue('--surface').trim() || '#1f2937';
+  ctx.fillRect(0, 0, w, h);
+
+  // ── Horizontal dB grid lines ─────────────────────────────────────────────
+  const dbGridLines = [-15, -10, -5, 0, 5, 10, 15];
+  ctx.lineWidth = 1;
+  ctx.font = `${Math.round(9 * dpr)}px Inter, Segoe UI, system-ui, sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+
+  dbGridLines.forEach(db => {
+    const y = dbToY(db, h);
+    ctx.strokeStyle = db === 0
+      ? 'rgba(156,163,175,0.35)'   // 0 dB line slightly brighter
+      : 'rgba(156,163,175,0.12)';
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = 'rgba(107,114,128,0.9)';
+    const label = (db > 0 ? '+' : '') + db + ' dB';
+    ctx.fillText(label, 4 * dpr, y);
+  });
+
+  // ── Vertical frequency grid lines ────────────────────────────────────────
+  const freqGridLines = [
+    { f: 50,    label: '50' },
+    { f: 100,   label: '100' },
+    { f: 200,   label: '200' },
+    { f: 500,   label: '500' },
+    { f: 1000,  label: '1k' },
+    { f: 2000,  label: '2k' },
+    { f: 5000,  label: '5k' },
+    { f: 10000, label: '10k' },
+    { f: 20000, label: '20k' }
+  ];
+
+  ctx.textBaseline = 'bottom';
+  ctx.textAlign    = 'center';
+
+  freqGridLines.forEach(({ f, label }) => {
+    const x = freqToX(f, w);
+    ctx.strokeStyle = 'rgba(156,163,175,0.12)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(107,114,128,0.9)';
+    ctx.fillText(label, x, h - 2 * dpr);
+  });
+
+  // ── EQ curve ─────────────────────────────────────────────────────────────
+  // Sample enough points across log-freq range for a smooth curve
+  const steps = Math.max(w, 512);
+
+  ctx.beginPath();
+  ctx.lineWidth   = 2 * dpr;
+  ctx.strokeStyle = ACCENT_COLOR;
+  ctx.lineJoin    = 'round';
+  ctx.lineCap     = 'round';
+
+  for (let i = 0; i <= steps; i++) {
+    const t    = i / steps;
+    const freq = FREQ_MIN * Math.pow(FREQ_MAX / FREQ_MIN, t);
+    const db   = combinedMagDb(freq);
+    const x    = freqToX(freq, w);
+    const y    = dbToY(Math.max(DB_MIN, Math.min(DB_MAX, db)), h);
+    if (i === 0) ctx.moveTo(x, y);
+    else         ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // ── Curve fill (glow beneath the line) ───────────────────────────────────
+  const zeroY = dbToY(0, h);
+  ctx.lineTo(w, zeroY);
+  ctx.lineTo(0, zeroY);
+  ctx.closePath();
+
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0,   'rgba(59,130,246,0.20)');
+  grad.addColorStop(0.5, 'rgba(59,130,246,0.06)');
+  grad.addColorStop(1,   'rgba(59,130,246,0.00)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+}
+
+// Debounced redraw — coalesces rapid slider events into single frames
+let rafPending = false;
+function requestRedraw() {
+  if (!rafPending) {
+    rafPending = true;
+    requestAnimationFrame(() => {
+      drawCanvas();
+      rafPending = false;
+    });
+  }
+}
+
+// Redraw whenever the wrapper resizes (e.g. window resize in dev mode)
+if (typeof ResizeObserver !== 'undefined') {
+  new ResizeObserver(requestRedraw).observe(canvas.parentElement);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wire float slider (HTML input ↔ JUCE bridge)
+// ─────────────────────────────────────────────────────────────────────────────
+function wireSlider(paramId) {
+  const input   = document.getElementById('ctrl-' + paramId);
+  const valEl   = document.getElementById('val-' + paramId);
+  const def     = PARAMS[paramId];
+  if (!input) return;
+
+  function applyValue(v) {
+    state[paramId] = v;
+    if (valEl) valEl.textContent = formatValue(paramId, v);
+    input.value = v;
+    requestRedraw();
+  }
+
+  if (!isBrowser && typeof Juce !== 'undefined') {
+    const juceState = Juce.getSliderState(paramId);
+    // JUCE → HTML: called when host or automation changes the param
+    juceState.valueChangedEvent.addListener(() => {
+      const v = normToValue(juceState.getNormalisedValue(), def);
+      applyValue(v);
+    });
+    // HTML → JUCE: user drags the slider
+    input.addEventListener('input', () => {
+      const v = parseFloat(input.value);
+      state[paramId] = v;
+      if (valEl) valEl.textContent = formatValue(paramId, v);
+      juceState.setNormalisedValue(valueToNorm(v, def));
+      requestRedraw();
+    });
+  } else {
+    // Dev mode: just update state and redraw
+    input.addEventListener('input', () => {
+      applyValue(parseFloat(input.value));
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wire bypass toggle (HTML checkbox ↔ JUCE bridge)
+// ─────────────────────────────────────────────────────────────────────────────
+function wireBypass() {
+  const checkbox = document.getElementById('ctrl-bypass');
+  if (!checkbox) return;
+
+  function applyBypass(on) {
+    state.bypass = on;
+    checkbox.checked = on;
+    document.getElementById('pluginRoot').classList.toggle('bypassed', on);
+    requestRedraw();
+  }
+
+  if (!isBrowser && typeof Juce !== 'undefined') {
+    const juceState = Juce.getToggleState('bypass');
+    juceState.valueChangedEvent.addListener(() => {
+      applyBypass(juceState.getValue());
+    });
+    checkbox.addEventListener('change', () => {
+      juceState.setValue(checkbox.checked);
+      applyBypass(checkbox.checked);
+    });
+  } else {
+    checkbox.addEventListener('change', () => applyBypass(checkbox.checked));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Watchdog violation indicator (Phase 3 DSP budget)
+// ─────────────────────────────────────────────────────────────────────────────
+function flashWatchdog() {
+  const el = document.getElementById('watchdogIndicator');
+  el.classList.add('violation');
+  el.title = 'DSP watchdog triggered — processing time exceeded budget';
+  setTimeout(() => el.classList.remove('violation'), 2000);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bootstrap
+// ─────────────────────────────────────────────────────────────────────────────
+function init() {
+  // Wire all six float parameters
+  wireSlider('low_gain_db');
+  wireSlider('low_freq_hz');
+  wireSlider('mid_gain_db');
+  wireSlider('mid_freq_hz');
+  wireSlider('mid_q');
+  wireSlider('high_gain_db');
+  wireSlider('high_freq_hz');
+  wireBypass();
+
+  if (isBrowser) {
+    console.info('[AgentEQ] Browser dev mode — JUCE bridge not present, using mock state.');
+    document.getElementById('statusText').textContent =
+      'Dev mode — JUCE bridge not connected';
+  } else {
+    document.getElementById('statusText').textContent = 'Connected';
+    // Register for DSP watchdog events from C++ bridge
+    if (typeof Juce !== 'undefined' && Juce.addEventListener) {
+      Juce.addEventListener('watchdog_violation', flashWatchdog);
+    }
+  }
+
+  // Initial draw
+  requestRedraw();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

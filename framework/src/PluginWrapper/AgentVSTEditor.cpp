@@ -417,7 +417,7 @@ void AgentVSTEditor::buildUI() {
         } else if (def.type == "enum") {
             ComboRow row;
             row.label = std::make_unique<juce::Label>("", def.name);
-            row.label->setFont(juce::Font(12.0f));
+            row.label->setFont(juce::Font(juce::FontOptions{}.withHeight(12.0f)));
             row.label->setJustificationType(juce::Justification::centredRight);
 
             row.combo = std::make_unique<juce::ComboBox>();
@@ -436,7 +436,7 @@ void AgentVSTEditor::buildUI() {
             // float or int — use a horizontal slider
             SliderRow row;
             row.label = std::make_unique<juce::Label>("", def.name);
-            row.label->setFont(juce::Font(12.0f));
+            row.label->setFont(juce::Font(juce::FontOptions{}.withHeight(12.0f)));
             row.label->setJustificationType(juce::Justification::centredRight);
 
             row.slider = std::make_unique<juce::Slider>(
@@ -535,14 +535,14 @@ void AgentVSTEditor::paint(juce::Graphics& g) {
 
     // Plugin name
     g.setColour(juce::Colour(0xffe94560));
-    g.setFont(juce::Font(16.0f, juce::Font::bold));
+    g.setFont(juce::Font(juce::FontOptions{}.withHeight(16.0f).withStyle("Bold")));
     g.drawText(proc_.getSchema().metadata.name,
                headerArea.reduced(8, 0),
                juce::Justification::centredLeft);
 
     // Version tag
     g.setColour(juce::Colour(0xff888888));
-    g.setFont(juce::Font(11.0f));
+    g.setFont(juce::Font(juce::FontOptions{}.withHeight(11.0f)));
     g.drawText("v" + proc_.getSchema().metadata.version,
                headerArea.reduced(8, 0),
                juce::Justification::centredRight);
