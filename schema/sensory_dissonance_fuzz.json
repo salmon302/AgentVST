@@ -1,0 +1,70 @@
+{
+  "plugin": {
+    "name": "Sensory Dissonance Smart Fuzz",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Distortion"
+  },
+  "parameters": [
+    {
+      "id": "roughness_hz",
+      "name": "Roughness Hz",
+      "type": "float",
+      "min": 5.0,
+      "max": 100.0,
+      "default": 30.0,
+      "unit": "Hz",
+      "step": 0.1,
+      "skew": 0.5
+    },
+    {
+      "id": "smart_threshold",
+      "name": "Smart Threshold",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "unit": "ratio",
+      "step": 0.01,
+      "skew": 1.0
+    },
+    {
+      "id": "dissonance_injection",
+      "name": "Dissonance Injection",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.8,
+      "unit": "ratio",
+      "step": 0.01,
+      "skew": 1.0
+    },
+    {
+      "id": "fuzz_drive",
+      "name": "Fuzz Drive",
+      "type": "float",
+      "min": 1.0,
+      "max": 10.0,
+      "default": 5.0,
+      "unit": "dB",
+      "step": 0.1,
+      "skew": 1.0
+    }
+  ],
+  "dsp_routing": [
+    {
+      "source": "input",
+      "destination": "smart_fuzz",
+      "parameter_link": {
+        "roughness_hz": "smart_fuzz.roughness",
+        "smart_threshold": "smart_fuzz.threshold",
+        "dissonance_injection": "smart_fuzz.dissonance",
+        "fuzz_drive": "smart_fuzz.drive"
+      }
+    },
+    {
+      "source": "smart_fuzz",
+      "destination": "output"
+    }
+  ]
+}

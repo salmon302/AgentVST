@@ -62,6 +62,13 @@ if(AGENTVST_BUILD_EXAMPLES)
     add_subdirectory(examples/three_band_eq)
     add_subdirectory(examples/escher_shifter/Escher_Pitch_Shifter)
     add_subdirectory(examples/devils_grid/Devils_Grid_Irrational_Delay)
+    add_subdirectory(examples/ring_modulator/Ring_Modulator_of_the_Void)
+    add_subdirectory(examples/sensory_dissonance_fuzz/Sensory_Dissonance_Smart_Fuzz)
+    add_subdirectory(examples/material_decay/Material_Decay_Resonator)
+    add_subdirectory(examples/dechronicization/Dechronicization_Engine)
+    add_subdirectory(examples/doppler_shifted_room/Doppler_Shifted_Room)
+    add_subdirectory(examples/false_memory_convolution/FalseMemoryConvolution)
+    add_subdirectory(examples/fractured_tachyon/FracturedTachyon)
 endif()
 
 # ─────────────────────────────────────────────────────────────────────────────

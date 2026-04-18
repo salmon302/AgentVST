@@ -1,9 +1,18 @@
 [CmdletBinding()]
 param(
-    [string]$WorkspaceFolder = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
+    [string]$WorkspaceFolder,
     [string]$Config = "Release",
     [switch]$Force
 )
+
+if (-not $WorkspaceFolder) {
+    if ($PSScriptRoot) {
+        $WorkspaceFolder = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+    } else {
+        $WorkspaceFolder = $PWD.Path
+    }
+}
+
 
 $ErrorActionPreference = "Stop"
 

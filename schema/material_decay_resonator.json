@@ -1,0 +1,68 @@
+{
+  "plugin": {
+    "name": "Material Decay Resonator",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Reverb"
+  },
+  "parameters": [
+    {
+      "id": "material_type",
+      "name": "Material Type",
+      "type": "int",
+      "min": 0,
+      "max": 2,
+      "default": 0,
+      "unit": "idx"
+    },
+    {
+      "id": "decay_rate",
+      "name": "Decay Rate (Rot)",
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "default": 1.0,
+      "unit": "s",
+      "step": 0.1,
+      "skew": 0.5
+    },
+    {
+      "id": "structural_failure",
+      "name": "Structural Failure",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "unit": "ratio",
+      "step": 0.01,
+      "skew": 1.0
+    },
+    {
+      "id": "mix",
+      "name": "Dry/Wet Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "unit": "ratio",
+      "step": 0.01,
+      "skew": 1.0
+    }
+  ],
+  "dsp_routing": [
+    {
+      "source": "input",
+      "destination": "material_decay",
+      "parameter_link": {
+        "material_type": "material_decay.type",
+        "decay_rate": "material_decay.decay",
+        "structural_failure": "material_decay.failure",
+        "mix": "material_decay.mix"
+      }
+    },
+    {
+      "source": "material_decay",
+      "destination": "output"
+    }
+  ]
+}

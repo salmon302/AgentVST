@@ -6,7 +6,7 @@
 _build_release_and_deploy.cmd
 ```
 
-This builds all plugins in Release mode and deploys to Ableton VST3 folder.
+This builds all plugins in Release mode and deploys to `I:\Documents\Ableton\VST3\dev`.
 
 ## Step-by-Step Manual Process
 

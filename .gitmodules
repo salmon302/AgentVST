@@ -1,0 +1,4 @@
+[submodule "build/modules/pluginval"]
+	path = build/modules/pluginval
+	url = https://github.com/Tracktion/pluginval.git
+	branch = develop

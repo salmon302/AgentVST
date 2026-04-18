@@ -1,0 +1,45 @@
+{
+  "plugin": {
+    "name": "FracturedTachyon",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "capture_trigger",
+      "name": "Capture",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "id": "entropy_amount",
+      "name": "Entropy Amount",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "unit": "%"
+    },
+    {
+      "id": "chronological_rot",
+      "name": "Chronological Rot",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "unit": "%"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "unit": "%"
+    }
+  ],
+  "groups": [],
+  "dsp_routing": []
+}

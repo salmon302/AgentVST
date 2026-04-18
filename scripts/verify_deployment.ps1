@@ -25,7 +25,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$DeployDir = "C:\Users\salmo\Documents\VST3\AgentVST-Dev",
+    [string]$DeployDir = "I:\Documents\Ableton\VST3\dev",
     [string]$SourceDir = ".\build"
 )
 

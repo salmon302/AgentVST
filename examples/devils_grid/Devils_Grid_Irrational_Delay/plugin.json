@@ -27,7 +27,8 @@
       "type": "enum",
       "options": [
         "x_sqrt2",
-        "x_inv_sqrt2"
+        "x_phi",
+        "x_pi"
       ],
       "default": 0,
       "group": "rhythm"

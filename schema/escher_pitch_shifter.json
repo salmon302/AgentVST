@@ -7,19 +7,41 @@
   },
   "parameters": [
     {
-      "id": "rate",
-      "name": "Shift Rate",
+      "id": "shift_cycle",
+      "name": "Shift Cycle",
       "type": "float",
-      "min": -12.0,
-      "max": 12.0,
-      "default": 6.0,
-      "unit": "st/s",
-      "step": 0.1,
+      "min": 0.05,
+      "max": 10.0,
+      "default": 0.5,
+      "unit": "Hz",
+      "step": 0.01,
+      "skew": 0.5
+    },
+    {
+      "id": "tension_lock",
+      "name": "Tension/Lock",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.0,
+      "unit": "ratio",
+      "step": 0.01,
       "skew": 1.0
     },
     {
-      "id": "tritone_blend",
-      "name": "Tritone Blend",
+      "id": "asymmetry",
+      "name": "Asymmetry",
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "default": 0.0,
+      "unit": "skew",
+      "step": 0.01,
+      "skew": 1.0
+    },
+    {
+      "id": "mix",
+      "name": "Dry/Wet Mix",
       "type": "float",
       "min": 0.0,
       "max": 1.0,
@@ -27,26 +49,6 @@
       "unit": "ratio",
       "step": 0.01,
       "skew": 1.0
-    },
-    {
-      "id": "feedback",
-      "name": "Feedback",
-      "type": "float",
-      "min": 0.0,
-      "max": 0.95,
-      "default": 0.0,
-      "unit": "%",
-      "step": 0.01,
-      "skew": 1.0
-    },
-    {
-      "id": "octave_spread",
-      "name": "Octave Spread",
-      "type": "int",
-      "min": 1,
-      "max": 4,
-      "default": 2,
-      "unit": "oct"
     }
   ],
   "dsp_routing": [
@@ -54,10 +56,10 @@
       "source": "input",
       "destination": "escher_shifter",
       "parameter_link": {
-        "rate": "escher_shifter.rate",
-        "tritone_blend": "escher_shifter.blend",
-        "feedback": "escher_shifter.feedback",
-        "octave_spread": "escher_shifter.spread"
+        "shift_cycle": "escher_shifter.rate",
+        "tension_lock": "escher_shifter.lock",
+        "asymmetry": "escher_shifter.asymmetry",
+        "mix": "escher_shifter.mix"
       }
     },
     {

@@ -1,13 +1,13 @@
 @echo off
 setlocal
 
-set "ABLETON_VST3_DEV_DIR=C:\Users\salmo\Documents\VST3\AgentVST-Dev"
+set "ABLETON_VST3_DEV_DIR=I:\Documents\Ableton\VST3\dev"
 
 if not exist "%ABLETON_VST3_DEV_DIR%" (
     mkdir "%ABLETON_VST3_DEV_DIR%"
 )
 
-call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 if errorlevel 1 exit /b %errorlevel%
 
 "C:\Program Files\CMake\bin\cmake.exe" -S . -B build -DAGENTVST_VST3_DEPLOY_DIR="%ABLETON_VST3_DEV_DIR%"

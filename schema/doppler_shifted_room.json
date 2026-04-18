@@ -1,0 +1,68 @@
+{
+  "plugin": {
+    "name": "Doppler Shifted Room",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Reverb"
+  },
+  "parameters": [
+    {
+      "id": "room_velocity",
+      "name": "Room Velocity",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%",
+      "group": "doppler"
+    },
+    {
+      "id": "expansion_cycle",
+      "name": "Expansion Cycle",
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "default": 0.5,
+      "unit": "Hz",
+      "group": "doppler"
+    },
+    {
+      "id": "acoustic_mass",
+      "name": "Acoustic Mass",
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "default": 2.0,
+      "unit": "s",
+      "group": "reverb"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%",
+      "group": "reverb"
+    }
+  ],
+  "groups": [
+    {
+      "id": "doppler",
+      "name": "Doppler",
+      "parameters": [
+        "room_velocity",
+        "expansion_cycle"
+      ]
+    },
+    {
+      "id": "reverb",
+      "name": "Reverb",
+      "parameters": [
+        "acoustic_mass",
+        "mix"
+      ]
+    }
+  ]
+}

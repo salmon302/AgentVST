@@ -1,0 +1,49 @@
+{
+  "plugin": {
+    "name": "FalseMemoryConvolution",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Reverb"
+  },
+  "parameters": [
+    {
+      "id": "morph_speed_hz",
+      "name": "Morph Speed",
+      "type": "float",
+      "min": 0.01,
+      "max": 10.0,
+      "default": 0.5,
+      "unit": "Hz"
+    },
+    {
+      "id": "morph_mode",
+      "name": "Morph Mode",
+      "type": "enum",
+      "options": [
+        "Linear",
+        "Granular"
+      ],
+      "default": 0
+    },
+    {
+      "id": "morph_depth",
+      "name": "Morph Depth",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 1.0,
+      "unit": "%"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "unit": "%"
+    }
+  ],
+  "groups": [],
+  "dsp_routing": []
+}

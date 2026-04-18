@@ -4,7 +4,7 @@
 
 ```bash
 # Configure for Release build deployment to Ableton VST3 folder
-cmake -S . -B build -DAGENTVST_VST3_DEPLOY_DIR="C:\Users\salmo\Documents\VST3\AgentVST-Dev"
+cmake -S . -B build -DAGENTVST_VST3_DEPLOY_DIR="I:\Documents\Ableton\VST3\dev"
 
 # Build and deploy Release version (REQUIRED for DAW use)
 cmake --build build --config Release --parallel
@@ -41,7 +41,7 @@ cmake --build build --config Release --parallel
 
 - **Verify deployment timestamps** before testing
   ```bash
-  ls -lh "C:\Users\salmo\Documents\VST3\AgentVST-Dev\*/Contents/x86_64-win/*.vst3"
+  ls -lh "I:\Documents\Ableton\VST3\dev\*/Contents/x86_64-win/*.vst3"
   ```
 
 - **Use `_configure_with_ableton_vst3_deploy.cmd`** to automate setup
@@ -73,7 +73,7 @@ _configure_with_ableton_vst3_deploy.cmd
 cmake --build build --config Release --parallel
 
 :: Verify deployment
-dir "C:\Users\salmo\Documents\VST3\AgentVST-Dev"
+dir "I:\Documents\Ableton\VST3\dev"
 
 :: Restart Ableton Live manually, then rescan VST3 folder
 ```
@@ -100,7 +100,7 @@ dir "C:\Users\salmo\Documents\VST3\AgentVST-Dev"
 **Check 1: Deployment Timestamp**
 ```bash
 # Is the binary recent?
-ls -lh "C:\Users\salmo\Documents\VST3\AgentVST-Dev\SimpleGain.vst3\Contents\x86_64-win\SimpleGain.vst3"
+ls -lh "I:\Documents\Ableton\VST3\dev\SimpleGain.vst3\Contents\x86_64-win\SimpleGain.vst3"
 # Should be today's date, not several days old
 ```
 
@@ -146,7 +146,7 @@ Check the plugin logger output for `Potential no-op DSP detected`. This indicate
 ## File Structure
 
 ```
-C:\Users\salmo\Documents\VST3\AgentVST-Dev\
+I:\Documents\Ableton\VST3\dev\
 ├── SimpleGain.vst3/
 │   └── Contents/
 │       └── x86_64-win/

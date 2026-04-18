@@ -84,7 +84,8 @@ private:
     static constexpr int kMaxChannels = 2;
     static constexpr float kMaxDelaySeconds = 8.0f;
     static constexpr float kSqrt2 = 1.41421356237f;
-    static constexpr float kInvSqrt2 = 0.70710678118f;
+    static constexpr float kPhi = 1.61803398875f;
+    static constexpr float kPi = 3.14159265359f;
     static constexpr float kTwoPi = 6.28318530718f;
 
     static constexpr std::array<float, 6> kQuarterNoteMultipliers {
@@ -131,12 +132,16 @@ private:
         const int modeIdx = std::clamp(
             static_cast<int>(ctx.getParameter("irrational_mode")),
             0,
-            1);
+            2);
 
         const float bpmRaw = static_cast<float>(ctx.bpm);
         const float bpm = std::clamp((bpmRaw > 1.0f ? bpmRaw : 120.0f), 20.0f, 320.0f);
         const float quarterSeconds = 60.0f / bpm;
-        const float irrational = (modeIdx == 0) ? kSqrt2 : kInvSqrt2;
+        
+        float irrational = kSqrt2;
+        if (modeIdx == 1) irrational = kPhi;
+        else if (modeIdx == 2) irrational = kPi;
+        
         const float timeScale = std::clamp(ctx.getParameter("time_scale"), 0.25f, 4.0f);
 
         float delaySeconds = quarterSeconds
@@ -185,16 +190,32 @@ private:
         float readPos = static_cast<float>(write) - delayInSamples;
         while (readPos < 0.0f)
             readPos += static_cast<float>(maxDelaySamples_);
+        while (readPos >= static_cast<float>(maxDelaySamples_))
+            readPos -= static_cast<float>(maxDelaySamples_);
 
         int i0 = static_cast<int>(readPos);
-        int i1 = i0 + 1;
-        if (i1 >= maxDelaySamples_)
-            i1 -= maxDelaySamples_;
-
         const float frac = readPos - static_cast<float>(i0);
-        const float s0 = delayBuffer_[static_cast<std::size_t>(base + i0)];
-        const float s1 = delayBuffer_[static_cast<std::size_t>(base + i1)];
-        return s0 + frac * (s1 - s0);
+
+        int im1 = i0 - 1;
+        if (im1 < 0) im1 += maxDelaySamples_;
+
+        int i1 = i0 + 1;
+        if (i1 >= maxDelaySamples_) i1 -= maxDelaySamples_;
+
+        int i2 = i0 + 2;
+        if (i2 >= maxDelaySamples_) i2 -= maxDelaySamples_;
+
+        const float y_m1 = delayBuffer_[static_cast<std::size_t>(base + im1)];
+        const float y_0  = delayBuffer_[static_cast<std::size_t>(base + i0)];
+        const float y_1  = delayBuffer_[static_cast<std::size_t>(base + i1)];
+        const float y_2  = delayBuffer_[static_cast<std::size_t>(base + i2)];
+
+        const float c0 = y_0;
+        const float c1 = 0.5f * (y_1 - y_m1);
+        const float c2 = y_m1 - 2.5f * y_0 + 2.0f * y_1 - 0.5f * y_2;
+        const float c3 = 1.5f * (y_0 - y_1) + 0.5f * (y_2 - y_m1);
+
+        return ((c3 * frac + c2) * frac + c1) * frac + c0;
     }
 
     void writeInputWithFeedback(int channel, float input, float delayed) noexcept {

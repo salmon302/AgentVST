@@ -7,7 +7,12 @@ Param(
     [string]$LogFolder
 )
 
-$WorkspaceRoot = Resolve-Path "$PSScriptRoot\.." | Select-Object -ExpandProperty Path
+if ($PSScriptRoot) {
+    $WorkspaceRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+} else {
+    $WorkspaceRoot = $PWD.Path
+}
+
 if (-not $PluginsFolder) { $PluginsFolder = Join-Path $WorkspaceRoot "deployed_vst3" }
 if (-not $LogFolder) { $LogFolder = Join-Path $WorkspaceRoot "build\pluginval_logs" }
 
