@@ -588,3 +588,9 @@ The framework is considered complete for v1.0 when ALL of the following are sati
 ---
 
 **End of Development Plan**
+
+
+## DSP Plugins Needing Design Work
+- NegativeSpaceDelay
+- IntermodulationWallGenerator
+- DynamizationHaasComb

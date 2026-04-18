@@ -1,0 +1,70 @@
+{
+  "plugin": {
+    "name": "DynamizationHaasComb",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "all_pass_cascades",
+      "name": "All-Pass Cascades",
+      "type": "float",
+      "min": 1.0,
+      "max": 16.0,
+      "default": 4.0,
+      "unit": "Stages",
+      "step": 1.0,
+      "group": "dissolver"
+    },
+    {
+      "id": "viscosity",
+      "name": "Viscosity",
+      "type": "float",
+      "min": 100.0,
+      "max": 5000.0,
+      "default": 2000.0,
+      "unit": "ms",
+      "skew": 0.5,
+      "group": "dissolver"
+    },
+    {
+      "id": "transient_shatter",
+      "name": "Transient Shatter",
+      "type": "float",
+      "min": 0.0,
+      "max": 10.0,
+      "default": 5.0,
+      "unit": "ms",
+      "group": "dissolver"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 100.0,
+      "unit": "%",
+      "group": "output"
+    }
+  ],
+  "groups": [
+    {
+      "id": "dissolver",
+      "name": "Dissolver Engine",
+      "parameters": [
+        "all_pass_cascades",
+        "viscosity",
+        "transient_shatter"
+      ]
+    },
+    {
+      "id": "output",
+      "name": "Output",
+      "parameters": [
+        "mix"
+      ]
+    }
+  ]
+}

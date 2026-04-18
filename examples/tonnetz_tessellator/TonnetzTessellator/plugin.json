@@ -1,0 +1,55 @@
+{
+  "plugin": {
+    "name": "TonnetzTessellator",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "geometric_anchor",
+      "name": "Geometric Anchor",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%"
+    },
+    {
+      "id": "transformation_x",
+      "name": "Transformation X",
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "default": 0.0,
+      "unit": ""
+    },
+    {
+      "id": "transformation_y",
+      "name": "Transformation Y",
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "default": 0.0,
+      "unit": ""
+    },
+    {
+      "id": "tessellation_spread",
+      "name": "Tessellation Spread",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 20.0,
+      "unit": "%"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%"
+    }
+  ]
+}

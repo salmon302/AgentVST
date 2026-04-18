@@ -1,0 +1,46 @@
+{
+  "plugin": {
+    "name": "OceanicHaasWidener",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Spatial"
+  },
+  "parameters": [
+    {
+      "id": "width_array_ms",
+      "name": "Width Array",
+      "type": "float",
+      "min": 10.0,
+      "max": 35.0,
+      "default": 20.0,
+      "unit": "ms"
+    },
+    {
+      "id": "horizon_filter",
+      "name": "Horizon Filter",
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "default": 0.0,
+      "unit": ""
+    },
+    {
+      "id": "center_anchor",
+      "name": "Center Anchor",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 100.0,
+      "unit": "%"
+    }
+  ]
+}

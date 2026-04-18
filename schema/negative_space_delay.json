@@ -1,0 +1,74 @@
+{
+  "plugin": {
+    "name": "NegativeSpaceDelay",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Delay"
+  },
+  "parameters": [
+    {
+      "id": "spectral_evasion",
+      "name": "Spectral Evasion",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%",
+      "step": 1.0,
+      "group": "anti_masking"
+    },
+    {
+      "id": "echo_time",
+      "name": "Echo Time",
+      "type": "float",
+      "min": 10.0,
+      "max": 2000.0,
+      "default": 350.0,
+      "unit": "ms",
+      "step": 1.0,
+      "group": "delay"
+    },
+    {
+      "id": "feedback",
+      "name": "Feedback",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 40.0,
+      "unit": "%",
+      "step": 1.0,
+      "group": "delay"
+    },
+    {
+      "id": "bypass",
+      "name": "Bypass",
+      "type": "boolean",
+      "default": false,
+      "group": "output"
+    }
+  ],
+  "groups": [
+    {
+      "id": "delay",
+      "name": "Delay Settings",
+      "parameters": [
+        "echo_time",
+        "feedback"
+      ]
+    },
+    {
+      "id": "anti_masking",
+      "name": "Anti-Masking",
+      "parameters": [
+        "spectral_evasion"
+      ]
+    },
+    {
+      "id": "output",
+      "name": "Output",
+      "parameters": [
+        "bypass"
+      ]
+    }
+  ]
+}

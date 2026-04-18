@@ -1,0 +1,37 @@
+{
+  "plugin": {
+    "name": "InfrasonicDreadGenerator",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Generator"
+  },
+  "parameters": [
+    {
+      "id": "dread_frequency",
+      "name": "Dread Frequency",
+      "type": "float",
+      "min": 5.0,
+      "max": 19.0,
+      "default": 10.0,
+      "unit": "Hz"
+    },
+    {
+      "id": "impact_sensitivity",
+      "name": "Impact Sensitivity",
+      "type": "float",
+      "min": -60.0,
+      "max": 0.0,
+      "default": -20.0,
+      "unit": "dB"
+    },
+    {
+      "id": "pressure_amount",
+      "name": "Pressure Amount",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%"
+    }
+  ]
+}

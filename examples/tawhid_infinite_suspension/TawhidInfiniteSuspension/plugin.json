@@ -1,0 +1,46 @@
+{
+  "plugin": {
+    "name": "TawhidInfiniteSuspension",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "suspension_gravity",
+      "name": "Suspension Gravity",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%"
+    },
+    {
+      "id": "tension_selection",
+      "name": "Tension Selection",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "unit": ""
+    },
+    {
+      "id": "resolution_glide",
+      "name": "Resolution Glide",
+      "type": "float",
+      "min": 10.0,
+      "max": 5000.0,
+      "default": 1000.0,
+      "unit": "ms"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%"
+    }
+  ]
+}

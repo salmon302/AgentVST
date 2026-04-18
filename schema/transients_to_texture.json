@@ -1,0 +1,49 @@
+{
+  "plugin": {
+    "name": "TransientsToTexture",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "transient_threshold",
+      "name": "Transient Threshold",
+      "type": "float",
+      "min": -60.0,
+      "max": 0.0,
+      "default": -20.0,
+      "unit": "dB"
+    },
+    {
+      "id": "texture_palette",
+      "name": "Texture Palette",
+      "type": "enum",
+      "options": [
+        "Crackle",
+        "Scrape",
+        "Wind",
+        "DigitalGlitch"
+      ],
+      "default": 0
+    },
+    {
+      "id": "decay_envelope",
+      "name": "Decay Envelope",
+      "type": "float",
+      "min": 1.0,
+      "max": 1000.0,
+      "default": 100.0,
+      "unit": "ms"
+    },
+    {
+      "id": "texture_mix",
+      "name": "Texture Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 100.0,
+      "unit": "%"
+    }
+  ]
+}

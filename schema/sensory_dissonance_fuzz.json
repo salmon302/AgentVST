@@ -50,21 +50,5 @@
       "step": 0.1,
       "skew": 1.0
     }
-  ],
-  "dsp_routing": [
-    {
-      "source": "input",
-      "destination": "smart_fuzz",
-      "parameter_link": {
-        "roughness_hz": "smart_fuzz.roughness",
-        "smart_threshold": "smart_fuzz.threshold",
-        "dissonance_injection": "smart_fuzz.dissonance",
-        "fuzz_drive": "smart_fuzz.drive"
-      }
-    },
-    {
-      "source": "smart_fuzz",
-      "destination": "output"
-    }
   ]
 }

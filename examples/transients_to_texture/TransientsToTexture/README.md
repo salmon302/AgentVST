@@ -1,12 +1,12 @@
-# Varispeed Shepard Looper (Generated Scaffold)
+# TransientsToTexture (Generated Scaffold)
 
-This directory was generated from `I:\Documents\GitHub\AgentVST\schema\varispeed_shepard_looper.json` at 2026-04-18 04:59:34Z.
+This directory was generated from `I:\Documents\GitHub\AgentVST\schema\transients_to_texture.json` at 2026-04-18 16:07:07Z.
 
 ## Files
 
 - `plugin.json` - validated schema input copied into this directory
-- `CMakeLists.txt` - `agentvst_add_plugin` entry for `Varispeed_Shepard_Looper`
-- `src/Varispeed_Shepard_LooperDSP.cpp` - starter `processSample` implementation
+- `CMakeLists.txt` - `agentvst_add_plugin` entry for `TransientsToTexture`
+- `src/TransientsToTextureDSP.cpp` - starter `processSample` implementation
 
 ## Next Steps
 

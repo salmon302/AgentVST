@@ -88,19 +88,5 @@
         "bypass"
       ]
     }
-  ],
-  "dsp_routing": [
-    {
-      "source": "input",
-      "destination": "tone_filter",
-      "parameter_link": {
-        "cutoff_hz": "frequency",
-        "resonance": "q"
-      }
-    },
-    {
-      "source": "tone_filter",
-      "destination": "output"
-    }
   ]
 }

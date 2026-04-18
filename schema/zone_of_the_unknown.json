@@ -1,0 +1,37 @@
+{
+  "plugin": {
+    "name": "ZoneOfTheUnknown",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "mask_removal",
+      "name": "Mask Removal",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%"
+    },
+    {
+      "id": "granular_scatter",
+      "name": "Granular Scatter",
+      "type": "float",
+      "min": 10.0,
+      "max": 500.0,
+      "default": 100.0,
+      "unit": "ms"
+    },
+    {
+      "id": "horror_blend",
+      "name": "Horror Blend",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%"
+    }
+  ]
+}

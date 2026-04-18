@@ -1,0 +1,46 @@
+{
+  "plugin": {
+    "name": "StrapworkCounterpointWeaver",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "knot_complexity",
+      "name": "Knot Complexity",
+      "type": "float",
+      "min": 1.0,
+      "max": 6.0,
+      "default": 3.0,
+      "unit": "Strands"
+    },
+    {
+      "id": "contrary_bias",
+      "name": "Contrary Motion Bias",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%"
+    },
+    {
+      "id": "over_under_ducking",
+      "name": "Over/Under Ducking",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 75.0,
+      "unit": "%"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%"
+    }
+  ]
+}

@@ -36,6 +36,9 @@ public:
         float shiftHz = ctx.getParameter("shift_cycle"); // default 0.5 Hz
         float lock = ctx.getParameter("tension_lock");
         float asymmetry = ctx.getParameter("asymmetry");
+        float paradoxAmount = ctx.getParameter("paradox_filter");
+        float subAmount = ctx.getParameter("sub_injection");
+        float bifurcatedEcho = ctx.getParameter("bifurcated_echo");
         float mix = ctx.getParameter("mix");
 
         // 2. Update phase
@@ -54,9 +57,33 @@ public:
             currentPhase = std::floor(currentPhase * 6.0f) / 6.0f;
         }
 
+        // 3. Substitution Injection & Pitch Detection (Stub for now)
+        // In a real implementation, we'd use YIN/FFT to detect fundamental and shift by 6 semitones.
+        // For this example, we apply a subtle spectral shift as a placeholder.
+        float dryProcessed = input;
+        if (subAmount > 0.01f) {
+            // Simple frequency domain shift placeholder (mock)
+            dryProcessed += std::sin(2.0f * (float)M_PI * 440.0f * (float)ctx.currentSample / (float)sampleRate_) * 0.1f * subAmount;
+        }
+
+        // 4. Paradox Filter (Octave Ambiguity)
+        // Strips fundamental identification using a comb filter or high-pass/low-pass sandwich
+        if (paradoxAmount > 0.01f) {
+            // Placeholder: High-pass and resonance to blur the fundamental
+            float cutoff = 200.0f + (paradoxAmount * 1000.0f);
+            // Simple 1st-order HP placeholder
+            static float lastIn[kMaxChannels] = {0,0};
+            static float lastOut[kMaxChannels] = {0,0};
+            float alpha = cutoff / (cutoff + (float)sampleRate_);
+            float hp = (1.0f - alpha) * (lastOut[channel] + dryProcessed - lastIn[channel]);
+            lastIn[channel] = dryProcessed;
+            lastOut[channel] = hp;
+            dryProcessed = (dryProcessed * (1.0f - paradoxAmount)) + (hp * paradoxAmount);
+        }
+
         // Shepard envelope weight with asymmetry
         float weightUp = 0.5f * (1.0f - std::cos(2.0f * (float)M_PI * currentPhase));
-        float weightDown = 0.5f * (1.0f - std::cos(2.0f * (float)M_PI * (1.0f - currentPhase)));
+        float weightDown = 0.5f * (1.0f - std::cos(2.0f * (float)M_PI * (currentPhase + 0.5f)));
 
         // Asymmetry skew [-1, 1], < 0 favors fall, > 0 favors rise
         float skewUp = std::clamp(1.0f + asymmetry, 0.0f, 1.0f);
@@ -101,8 +128,16 @@ public:
 
         output = (upOut * weightUp) + (downOut * weightDown);
 
+        // 5. Bifurcated Echo
+        if (bifurcatedEcho > 0.01f) {
+            // Echo delay at a fixed tritone interval (approx 300-500ms for rhythm)
+            float tritoneDelay = sampleRate_ * 0.4f; 
+            float echo = getSample(tritoneDelay) * 0.5f;
+            output = (output * (1.0f - (bifurcatedEcho * 0.5f))) + (echo * bifurcatedEcho);
+        }
+
         // Write to delay buffer
-        delayBuffer_[channel][writePos_[channel]] = input;
+        delayBuffer_[channel][writePos_[channel]] = dryProcessed;
         writePos_[channel] = (writePos_[channel] + 1) % bufferSize_;
 
         return (input * (1.0f - mix)) + (output * mix);

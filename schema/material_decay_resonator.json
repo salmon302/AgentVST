@@ -48,21 +48,5 @@
       "step": 0.01,
       "skew": 1.0
     }
-  ],
-  "dsp_routing": [
-    {
-      "source": "input",
-      "destination": "material_decay",
-      "parameter_link": {
-        "material_type": "material_decay.type",
-        "decay_rate": "material_decay.decay",
-        "structural_failure": "material_decay.failure",
-        "mix": "material_decay.mix"
-      }
-    },
-    {
-      "source": "material_decay",
-      "destination": "output"
-    }
   ]
 }

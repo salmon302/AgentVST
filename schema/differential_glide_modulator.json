@@ -1,0 +1,68 @@
+{
+  "plugin": {
+    "name": "DifferentialGlideModulator",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Modulation"
+  },
+  "parameters": [
+    {
+      "id": "bar_depth",
+      "name": "Bar Depth",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%",
+      "step": 0.1,
+      "group": "modulation"
+    },
+    {
+      "id": "string_tension",
+      "name": "String Tension",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 30.0,
+      "unit": "%",
+      "step": 0.1,
+      "group": "modulation"
+    },
+    {
+      "id": "wobble_rate",
+      "name": "Wobble Rate",
+      "type": "float",
+      "min": 0.1,
+      "max": 10.0,
+      "default": 1.5,
+      "unit": "Hz",
+      "step": 0.01,
+      "group": "modulation"
+    },
+    {
+      "id": "bypass",
+      "name": "Bypass",
+      "type": "boolean",
+      "default": false,
+      "group": "output"
+    }
+  ],
+  "groups": [
+    {
+      "id": "modulation",
+      "name": "Modulation",
+      "parameters": [
+        "bar_depth",
+        "string_tension",
+        "wobble_rate"
+      ]
+    },
+    {
+      "id": "output",
+      "name": "Output",
+      "parameters": [
+        "bypass"
+      ]
+    }
+  ]
+}

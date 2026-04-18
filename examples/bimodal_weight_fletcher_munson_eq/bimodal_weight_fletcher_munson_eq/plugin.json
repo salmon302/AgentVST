@@ -1,0 +1,28 @@
+{
+  "parameters": [
+    {
+      "id": "reference_loudness",
+      "name": "Reference Loudness",
+      "min": -60.0,
+      "max": 0.0,
+      "default": -18.0,
+      "type": "float"
+    },
+    {
+      "id": "compensation_depth",
+      "name": "Compensation Depth",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "type": "float"
+    },
+    {
+      "id": "weight_bite_bias",
+      "name": "Weight/Bite Bias",
+      "min": -1.0,
+      "max": 1.0,
+      "default": 0.0,
+      "type": "float"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "plugin": {
+    "name": "GirihAsymmetricalDelay",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Delay"
+  },
+  "parameters": [
+    {
+      "id": "tessellation_root",
+      "name": "Tessellation Root",
+      "type": "float",
+      "min": 10.0,
+      "max": 2000.0,
+      "default": 300.0,
+      "unit": "ms"
+    },
+    {
+      "id": "n_fold_geometry",
+      "name": "N-Fold Geometry",
+      "type": "float",
+      "min": 5.0,
+      "max": 12.0,
+      "default": 5.0,
+      "unit": "fold"
+    },
+    {
+      "id": "tile_complexity",
+      "name": "Tile Complexity",
+      "type": "float",
+      "min": 1.0,
+      "max": 12.0,
+      "default": 5.0,
+      "unit": "taps"
+    },
+    {
+      "id": "feedback",
+      "name": "Feedback",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 40.0,
+      "unit": "%"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%"
+    }
+  ]
+}

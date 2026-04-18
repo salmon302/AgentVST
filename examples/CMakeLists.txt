@@ -1,1 +1,2 @@
 add_subdirectory(false_memory_convolution/FalseMemoryConvolution)
+add_subdirectory(just_intonation_muqarnas/JustIntonationMuqarnas)

@@ -1,0 +1,75 @@
+{
+  "plugin": {
+    "name": "PhantomSubHarmonicExciter",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "phantom_root",
+      "name": "Phantom Root",
+      "type": "float",
+      "min": 20.0,
+      "max": 300.0,
+      "default": 60.0,
+      "unit": "Hz",
+      "skew": 0.5,
+      "group": "sub"
+    },
+    {
+      "id": "harmonic_drive",
+      "name": "Harmonic Drive",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 30.0,
+      "unit": "%",
+      "group": "harmonics"
+    },
+    {
+      "id": "sub_excision",
+      "name": "Sub Excision",
+      "type": "float",
+      "min": 0.0,
+      "max": 48.0,
+      "default": 24.0,
+      "unit": "dB",
+      "group": "sub"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 100.0,
+      "unit": "%",
+      "group": "output"
+    }
+  ],
+  "groups": [
+    {
+      "id": "sub",
+      "name": "Sub Control",
+      "parameters": [
+        "phantom_root",
+        "sub_excision"
+      ]
+    },
+    {
+      "id": "harmonics",
+      "name": "Harmonics",
+      "parameters": [
+        "harmonic_drive"
+      ]
+    },
+    {
+      "id": "output",
+      "name": "Output",
+      "parameters": [
+        "mix"
+      ]
+    }
+  ]
+}

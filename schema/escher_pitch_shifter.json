@@ -50,21 +50,5 @@
       "step": 0.01,
       "skew": 1.0
     }
-  ],
-  "dsp_routing": [
-    {
-      "source": "input",
-      "destination": "escher_shifter",
-      "parameter_link": {
-        "shift_cycle": "escher_shifter.rate",
-        "tension_lock": "escher_shifter.lock",
-        "asymmetry": "escher_shifter.asymmetry",
-        "mix": "escher_shifter.mix"
-      }
-    },
-    {
-      "source": "escher_shifter",
-      "destination": "output"
-    }
   ]
 }

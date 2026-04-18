@@ -58,7 +58,7 @@ public:
             if (lfoPhase_ > 2.0f * kPi) lfoPhase_ -= 2.0f * kPi;
             float drift = 1.0f + (driftAmount * 0.05f * std::sin(lfoPhase_)); // +/- 5% max drift
             
-            const float carrierFreq = smoothedFundamental_ * kSqrt2 * drift;
+            const float carrierFreq = smoothedFundamental_ * kTritoneRatio * drift;
             carrierPhase_ += (2.0f * kPi * carrierFreq) / static_cast<float>(sampleRate_);
             if (carrierPhase_ > 2.0f * kPi) carrierPhase_ -= 2.0f * kPi;
         }
@@ -80,7 +80,8 @@ public:
     }
 
 private:
-    static constexpr float kSqrt2 = 1.41421356237f;
+    // Tritone ratio 45/32 (or 64/45) for true dissonance distortion
+    static constexpr float kTritoneRatio = 1.40625f; // 45.0f / 32.0f;
     static constexpr float kPi = 3.14159265359f;
 
     double sampleRate_ = 44100.0;
