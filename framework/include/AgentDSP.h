@@ -74,6 +74,7 @@ public:
      *   - std::vector::push_back (may reallocate)
      *   - std::cout / printf / DBG (system calls)
      *   - std::mutex / std::unique_lock (blocking)
+    *   - Any juce::Component / GUI state updates (message thread only)
      *   - File I/O or network access
      *
      * @param channel  0-based channel index (0 = left, 1 = right, ...)

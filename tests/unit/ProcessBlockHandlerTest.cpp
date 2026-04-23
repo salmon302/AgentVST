@@ -57,6 +57,16 @@ public:
     }
 };
 
+class SlowWatchdogProbeDSP : public AgentVST::IAgentDSP {
+public:
+    float processSample(int /*channel*/, float /*input*/, const AgentVST::DSPContext& /*ctx*/) override {
+        volatile float sink = 0.0f;
+        for (int i = 0; i < 200000; ++i)
+            sink = sink * 1.000001f + 0.000001f;
+        return 1.0f;
+    }
+};
+
 class PassThroughDSP : public AgentVST::IAgentDSP {
 public:
     float processSample(int /*channel*/, float input, const AgentVST::DSPContext& /*ctx*/) override {
@@ -77,6 +87,23 @@ public:
 
 private:
     std::atomic<float>* param_ = nullptr;
+};
+
+class SampleRateProbeDSP : public AgentVST::IAgentDSP {
+public:
+    void prepare(double sampleRate, int maxBlockSize) override {
+        preparedSampleRate = sampleRate;
+        preparedBlockSize = maxBlockSize;
+    }
+
+    float processSample(int /*channel*/, float input, const AgentVST::DSPContext& ctx) override {
+        lastContextSampleRate = ctx.sampleRate;
+        return input;
+    }
+
+    double preparedSampleRate = 0.0;
+    int preparedBlockSize = 0;
+    double lastContextSampleRate = 0.0;
 };
 
 AgentVST::DSPRoute route(const char* src, const char* dst) {
@@ -177,6 +204,37 @@ TEST_CASE("ProcessBlockHandler: watchdog flags slow DSP", "[dsp][processblock][w
     CHECK(handler.watchdogViolationCount() >= 1);
 }
 
+TEST_CASE("ProcessBlockHandler: watchdog check interval works for non-power-of-two values", "[dsp][processblock][watchdog]") {
+    AgentVST::ProcessBlockHandler handler;
+
+    AgentVST::ParameterCache cache;
+    std::atomic<float> dummy{0.0f};
+    cache.registerParameter("dummy", &dummy);
+    cache.finalize();
+
+    SlowWatchdogProbeDSP dsp;
+    handler.setAgentDSP(&dsp, cache);
+    handler.setWatchdogBudget(0.01);
+    handler.setWatchdogCheckInterval(5);
+    handler.prepare(48000.0, 64);
+
+    juce::AudioBuffer<float> buffer(1, 16);
+    buffer.clear();
+
+    juce::MidiBuffer midi;
+    juce::AudioPlayHead::CurrentPositionInfo pos;
+    handler.processBlock(buffer, midi, pos);
+
+    int processedSamplesBeforeTimeout = 0;
+    for (int i = 0; i < buffer.getNumSamples(); ++i) {
+        if (buffer.getSample(0, i) > 0.5f)
+            ++processedSamplesBeforeTimeout;
+    }
+
+    CHECK(handler.hadWatchdogViolation());
+    CHECK(processedSamplesBeforeTimeout >= 5);
+}
+
 TEST_CASE("ProcessBlockHandler: no-op detection flags unchanged audio", "[dsp][processblock][noop]") {
     AgentVST::ProcessBlockHandler handler;
 
@@ -258,5 +316,32 @@ TEST_CASE("ProcessBlockHandler: parameter reads are snapshotted per block", "[ds
         CHECK(buffer.getSample(0, i) > -0.0001f);
         CHECK(buffer.getSample(0, i) < 0.0001f);
     }
+}
+
+TEST_CASE("ProcessBlockHandler: invalid sample rate and block size are sanitized", "[dsp][processblock][samplerate]") {
+    AgentVST::ProcessBlockHandler handler;
+
+    AgentVST::ParameterCache cache;
+    std::atomic<float> dummy{0.0f};
+    cache.registerParameter("dummy", &dummy);
+    cache.finalize();
+
+    SampleRateProbeDSP dsp;
+    handler.setAgentDSP(&dsp, cache);
+    handler.prepare(0.0, 0);
+
+    juce::AudioBuffer<float> buffer(1, 4);
+    for (int i = 0; i < 4; ++i)
+        buffer.setSample(0, i, 0.25f);
+
+    juce::MidiBuffer midi;
+    juce::AudioPlayHead::CurrentPositionInfo pos;
+    handler.processBlock(buffer, midi, pos);
+
+    CHECK(dsp.preparedSampleRate > 44099.0);
+    CHECK(dsp.preparedSampleRate < 44101.0);
+    CHECK(dsp.preparedBlockSize == 1);
+    CHECK(dsp.lastContextSampleRate > 44099.0);
+    CHECK(dsp.lastContextSampleRate < 44101.0);
 }
 

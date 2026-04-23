@@ -124,7 +124,7 @@ private:
 
     double sampleRate_      = 44100.0;
     int    maxBlockSize_    = 512;
-    double budgetFraction_  = 0.10;
+    double budgetFraction_  = 0.95;
     int    checkInterval_   = 32;
     bool   noOpDetectionEnabled_ = true;
     double noOpThreshold_        = 1.0e-8;

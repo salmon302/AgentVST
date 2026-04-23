@@ -1,19 +1,32 @@
 #include "ProcessBlockHandler.h"
 #include "DSPRouter.h"
 #include <algorithm>
+#include <cmath>
 #include <thread>
 
 namespace AgentVST {
 
+namespace {
+
+constexpr double kFallbackSampleRate = 44100.0;
+
+double sanitizeSampleRate(double sampleRate) noexcept {
+    if (std::isfinite(sampleRate) && sampleRate > 1.0)
+        return sampleRate;
+    return kFallbackSampleRate;
+}
+
+} // namespace
+
 void ProcessBlockHandler::prepare(double sampleRate, int maxBlockSize) {
-    sampleRate_   = sampleRate;
-    maxBlockSize_ = maxBlockSize;
+    sampleRate_   = sanitizeSampleRate(sampleRate);
+    maxBlockSize_ = std::max(1, maxBlockSize);
 
     if (paramCache_)
         blockParamSnapshot_.assign(paramCache_->size(), 0.0f);
 
     if (agentDSP_)
-        agentDSP_->prepare(sampleRate, maxBlockSize);
+        agentDSP_->prepare(sampleRate_, maxBlockSize_);
 
     watchdogTriggered_.store(false, std::memory_order_relaxed);
     noOpTriggered_.store(false, std::memory_order_relaxed);
@@ -32,7 +45,7 @@ void ProcessBlockHandler::setDSPRouter(DSPRouter* router) {
 }
 
 void ProcessBlockHandler::setWatchdogBudget(double budgetFraction) noexcept {
-    budgetFraction_ = std::clamp(budgetFraction, 0.01, 0.95);
+    budgetFraction_ = std::clamp(budgetFraction, 0.01, 1.0);
 }
 
 void ProcessBlockHandler::setWatchdogCheckInterval(int checkInterval) noexcept {
@@ -68,6 +81,11 @@ void ProcessBlockHandler::processBlock(
     const int numChannels = buffer.getNumChannels();
     const int numSamples  = buffer.getNumSamples();
 
+    if (numChannels <= 0 || numSamples <= 0)
+        return;
+
+    sampleRate_ = sanitizeSampleRate(sampleRate_);
+
     const double bufferDurationMs = (static_cast<double>(numSamples) / sampleRate_) * 1000.0;
     const double budgetMs         = bufferDurationMs * budgetFraction_;
 
@@ -84,9 +102,12 @@ void ProcessBlockHandler::processBlock(
     double inputEnergy = 0.0;
     double diffEnergy  = 0.0;
 
+    DSPContext ctx = buildContext(0, numChannels, numSamples, posInfo);
+
     for (int sample = 0; sample < numSamples; ++sample) {
+        ctx.currentSample = sample;
         // Watchdog check (every checkInterval_ samples)
-        if (!timedOut && (sample & (checkInterval_ - 1)) == 0 && sample > 0) {
+        if (!timedOut && sample > 0 && (sample % checkInterval_) == 0) {
             auto now = std::chrono::high_resolution_clock::now();
             double elapsedMs = std::chrono::duration<double, std::milli>(now - startTime).count();
             if (elapsedMs > budgetMs) {
@@ -103,8 +124,6 @@ void ProcessBlockHandler::processBlock(
                 }
             }
         }
-
-        DSPContext ctx = buildContext(sample, numChannels, numSamples, posInfo);
 
         for (int ch = 0; ch < numChannels; ++ch) {
             float* channelData = buffer.getWritePointer(ch);

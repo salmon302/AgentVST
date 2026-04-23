@@ -1,0 +1,90 @@
+{
+  "plugin": {
+    "name": "Dualism Undertone Anchor",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "overtone_undertone_bias",
+      "name": "Overtone/Undertone Bias",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 65.0,
+      "unit": "%",
+      "step": 0.1,
+      "skew": 1.0,
+      "group": "tone"
+    },
+    {
+      "id": "gravity",
+      "name": "Gravity",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 60.0,
+      "unit": "%",
+      "step": 0.1,
+      "skew": 1.0,
+      "group": "tone"
+    },
+    {
+      "id": "tracking_speed",
+      "name": "Tracking Speed",
+      "type": "float",
+      "min": 10.0,
+      "max": 500.0,
+      "default": 90.0,
+      "unit": "ms",
+      "step": 1.0,
+      "skew": 0.6,
+      "group": "tracking"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 70.0,
+      "unit": "%",
+      "step": 0.1,
+      "skew": 1.0,
+      "group": "output"
+    },
+    {
+      "id": "bypass",
+      "name": "Bypass",
+      "type": "boolean",
+      "default": false,
+      "group": "output"
+    }
+  ],
+  "groups": [
+    {
+      "id": "tone",
+      "name": "Tone",
+      "parameters": [
+        "overtone_undertone_bias",
+        "gravity"
+      ]
+    },
+    {
+      "id": "tracking",
+      "name": "Tracking",
+      "parameters": [
+        "tracking_speed"
+      ]
+    },
+    {
+      "id": "output",
+      "name": "Output",
+      "parameters": [
+        "mix",
+        "bypass"
+      ]
+    }
+  ]
+}

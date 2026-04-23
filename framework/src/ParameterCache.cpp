@@ -9,11 +9,14 @@ void ParameterCache::registerParameter(const std::string& id, std::atomic<float>
         throw std::logic_error("ParameterCache::registerParameter called after finalize()");
     if (ptr == nullptr)
         throw std::invalid_argument("ParameterCache: null atomic pointer for id '" + id + "'");
-    if (idToIndex_.count(id))
-        throw std::invalid_argument("ParameterCache: duplicate registration for id '" + id + "'");
+    
+    for (const auto& pair : idToIndex_) {
+        if (pair.first == id)
+            throw std::invalid_argument("ParameterCache: duplicate registration for id '" + id + "'");
+    }
 
     std::size_t idx = entries_.size();
-    idToIndex_[id] = idx;
+    idToIndex_.push_back({id, idx});
     entries_.emplace_back();
     entries_.back().ptr = ptr;
 }
@@ -23,28 +26,35 @@ void ParameterCache::finalize() {
 }
 
 float ParameterCache::getValue(const std::string& id) const noexcept {
-    auto it = idToIndex_.find(id);
-    if (it == idToIndex_.end())
-        return 0.0f;
-    const auto* ptr = entries_[it->second].ptr;
-    if (ptr == nullptr)
-        return 0.0f;
-    return ptr->load(std::memory_order_relaxed);
+    for (const auto& pair : idToIndex_) {
+        if (pair.first == id) {
+            const auto* ptr = entries_[pair.second].ptr;
+            if (ptr == nullptr)
+                return 0.0f;
+            return ptr->load(std::memory_order_relaxed);
+        }
+    }
+    return 0.0f;
 }
 
 std::atomic<float>* ParameterCache::getPointer(const std::string& id) const noexcept {
-    auto it = idToIndex_.find(id);
-    if (it == idToIndex_.end())
-        return nullptr;
-    return entries_[it->second].ptr;
+    for (const auto& pair : idToIndex_) {
+        if (pair.first == id)
+            return entries_[pair.second].ptr;
+    }
+    return nullptr;
 }
 
 bool ParameterCache::tryGetIndex(const std::string& id, std::size_t& index) const noexcept {
-    auto it = idToIndex_.find(id);
-    if (it == idToIndex_.end())
-        return false;
-    index = it->second;
-    return true;
+    // Linear search is usually faster than unordered_map hash for very small N (N<20 typically).
+    // And this completely avoids unordered_map inside the real-time thread!
+    for (const auto& pair : idToIndex_) {
+        if (pair.first == id) {
+            index = pair.second;
+            return true;
+        }
+    }
+    return false;
 }
 
 void ParameterCache::copyValuesTo(float* destination, std::size_t count) const noexcept {
@@ -64,7 +74,11 @@ void ParameterCache::copyValuesTo(float* destination, std::size_t count) const n
 }
 
 bool ParameterCache::hasParameter(const std::string& id) const noexcept {
-    return idToIndex_.count(id) > 0;
+    for (const auto& pair : idToIndex_) {
+        if (pair.first == id)
+            return true;
+    }
+    return false;
 }
 
 std::vector<std::string> ParameterCache::getParameterIds() const {

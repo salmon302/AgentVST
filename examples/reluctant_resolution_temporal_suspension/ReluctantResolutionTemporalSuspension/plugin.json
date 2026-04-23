@@ -1,0 +1,57 @@
+{
+  "plugin": {
+    "name": "ReluctantResolutionTemporalSuspension",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "catch_threshold",
+      "name": "Catch Threshold",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 42.0,
+      "unit": "%",
+      "step": 0.1,
+      "skew": 1.0,
+      "group": "reluctant"
+    },
+    {
+      "id": "lag_amount",
+      "name": "Lag Amount",
+      "type": "float",
+      "min": 0.0,
+      "max": 600.0,
+      "default": 170.0,
+      "unit": "ms",
+      "step": 1.0,
+      "skew": 0.7,
+      "group": "reluctant"
+    },
+    {
+      "id": "resolution_glide",
+      "name": "Resolution Glide",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 55.0,
+      "unit": "%",
+      "step": 0.1,
+      "skew": 1.0,
+      "group": "reluctant"
+    }
+  ],
+  "groups": [
+    {
+      "id": "reluctant",
+      "name": "Reluctant Resolution",
+      "parameters": [
+        "catch_threshold",
+        "lag_amount",
+        "resolution_glide"
+      ]
+    }
+  ]
+}

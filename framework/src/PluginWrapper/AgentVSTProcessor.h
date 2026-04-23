@@ -108,6 +108,8 @@ private:
     std::atomic<bool>                                    sawProcessBlock_{ false };
     std::atomic<bool>                                    sawProcessBlockBypassed_{ false };
     std::atomic<std::uint64_t>                           processCallbackCount_{ 0 };
+    double                                               preparedSampleRate_ = 44100.0;
+    int                                                  preparedBlockSize_  = 512;
 
     juce::AudioProcessorValueTreeState::ParameterLayout buildParameterLayout() const;
     void initParameterCache();

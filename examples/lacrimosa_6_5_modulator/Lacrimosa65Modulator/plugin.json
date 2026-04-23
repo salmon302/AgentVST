@@ -1,0 +1,90 @@
+{
+  "plugin": {
+    "name": "Lacrimosa65Modulator",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "intensity",
+      "name": "Intensity",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 55.0,
+      "unit": "%",
+      "step": 0.1,
+      "skew": 1.0,
+      "group": "lacrimosa"
+    },
+    {
+      "id": "sob_depth",
+      "name": "Sob Depth",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 45.0,
+      "unit": "%",
+      "step": 0.1,
+      "skew": 1.0,
+      "group": "lacrimosa"
+    },
+    {
+      "id": "tracking_speed",
+      "name": "Tracking Speed",
+      "type": "float",
+      "min": 10.0,
+      "max": 500.0,
+      "default": 90.0,
+      "unit": "ms",
+      "step": 1.0,
+      "skew": 0.6,
+      "group": "tracking"
+    },
+    {
+      "id": "mix",
+      "name": "Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 70.0,
+      "unit": "%",
+      "step": 0.1,
+      "skew": 1.0,
+      "group": "output"
+    },
+    {
+      "id": "bypass",
+      "name": "Bypass",
+      "type": "boolean",
+      "default": false,
+      "group": "output"
+    }
+  ],
+  "groups": [
+    {
+      "id": "lacrimosa",
+      "name": "Lacrimosa",
+      "parameters": [
+        "intensity",
+        "sob_depth"
+      ]
+    },
+    {
+      "id": "tracking",
+      "name": "Tracking",
+      "parameters": [
+        "tracking_speed"
+      ]
+    },
+    {
+      "id": "output",
+      "name": "Output",
+      "parameters": [
+        "mix",
+        "bypass"
+      ]
+    }
+  ]
+}

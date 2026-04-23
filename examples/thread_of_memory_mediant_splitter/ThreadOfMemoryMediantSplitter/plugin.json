@@ -1,0 +1,48 @@
+{
+  "plugin": {
+    "name": "ThreadOfMemoryMediantSplitter",
+    "version": "1.0.0",
+    "vendor": "AgentVST",
+    "category": "Fx"
+  },
+  "parameters": [
+    {
+      "id": "common_tone_freeze",
+      "name": "Common-Tone Freeze",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 55.0,
+      "unit": "%"
+    },
+    {
+      "id": "mediant_mode",
+      "name": "Mediant Mode",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.0,
+      "unit": "0=6:5, 1=5:4"
+    },
+    {
+      "id": "wet_ghost_mix",
+      "name": "Wet/Ghost Mix",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 45.0,
+      "unit": "%"
+    }
+  ],
+  "groups": [
+    {
+      "id": "main",
+      "name": "Main",
+      "parameters": [
+        "common_tone_freeze",
+        "mediant_mode",
+        "wet_ghost_mix"
+      ]
+    }
+  ]
+}

@@ -25,6 +25,14 @@ namespace AgentVST {
 
 namespace {
 
+constexpr double kFallbackSampleRate = 44100.0;
+
+double sanitizeSampleRate(double sampleRate) noexcept {
+    if (std::isfinite(sampleRate) && sampleRate > 1.0)
+        return sampleRate;
+    return kFallbackSampleRate;
+}
+
 struct ChannelMeters {
     float peak = 0.0f;
     float rms  = 0.0f;
@@ -288,12 +296,15 @@ void AgentVSTProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     sawProcessBlockBypassed_.store(false, std::memory_order_relaxed);
     processCallbackCount_.store(0, std::memory_order_relaxed);
 
+    preparedSampleRate_ = sanitizeSampleRate(sampleRate);
+    preparedBlockSize_  = std::max(1, samplesPerBlock);
+
     if (dspRouter_.isConfigured()) {
-        dspRouter_.prepare(sampleRate, samplesPerBlock);
+        dspRouter_.prepare(preparedSampleRate_, preparedBlockSize_);
         dspRouter_.bindParameters(paramCache_);
     }
 
-    blockHandler_.prepare(sampleRate, samplesPerBlock);
+    blockHandler_.prepare(preparedSampleRate_, preparedBlockSize_);
 
     juce::AudioPlayHead::CurrentPositionInfo dummyPos;
     dummyPos.isPlaying   = false;
@@ -319,6 +330,8 @@ void AgentVSTProcessor::releaseResources() {
     outputRmsR_.store(0.0f, std::memory_order_relaxed);
     sawProcessBlock_.store(false, std::memory_order_relaxed);
     sawProcessBlockBypassed_.store(false, std::memory_order_relaxed);
+    preparedSampleRate_ = kFallbackSampleRate;
+    preparedBlockSize_  = 512;
 }
 
 bool AgentVSTProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
@@ -342,6 +355,24 @@ bool AgentVSTProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 void AgentVSTProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                       juce::MidiBuffer& midi) {
     juce::ScopedNoDenormals noDenormals;
+
+    const double hostSampleRate = sanitizeSampleRate(getSampleRate());
+    const int hostBlockSize     = std::max(1, buffer.getNumSamples());
+    const bool sampleRateChanged = std::abs(hostSampleRate - preparedSampleRate_) > 1.0e-6;
+    const bool blockSizeGrew     = hostBlockSize > preparedBlockSize_;
+
+    if (sampleRateChanged || blockSizeGrew) {
+        const int effectiveBlockSize = std::max(preparedBlockSize_, hostBlockSize);
+
+        if (dspRouter_.isConfigured()) {
+            dspRouter_.prepare(hostSampleRate, effectiveBlockSize);
+            dspRouter_.bindParameters(paramCache_);
+        }
+
+        blockHandler_.prepare(hostSampleRate, effectiveBlockSize);
+        preparedSampleRate_ = hostSampleRate;
+        preparedBlockSize_  = effectiveBlockSize;
+    }
 
     sawProcessBlock_.store(true, std::memory_order_relaxed);
     processCallbackCount_.fetch_add(1, std::memory_order_relaxed);

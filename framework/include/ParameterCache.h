@@ -14,7 +14,6 @@
 
 #include <string>
 #include <atomic>
-#include <unordered_map>
 #include <stdexcept>
 #include <vector>
 
@@ -93,7 +92,7 @@ private:
         char _pad[64 - sizeof(std::atomic<float>*)];
     };
 
-    std::unordered_map<std::string, std::size_t> idToIndex_;
+    std::vector<std::pair<std::string, std::size_t>> idToIndex_;
     std::vector<Entry> entries_;
     bool finalized_ = false;
 };
