@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <vector>
 
 class Devils_Grid_Irrational_DelayProcessor : public AgentVST::IAgentDSP {
@@ -103,7 +104,7 @@ private:
 
     double sampleRate_ = 44100.0;
     int maxDelaySamples_ = 0;
-    int sampleStamp_ = -1;
+    std::int64_t sampleStamp_ = -1;
 
     float baseDelaySamples_ = 22050.0f;
     float feedback_ = 0.45f;

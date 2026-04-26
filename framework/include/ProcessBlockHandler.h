@@ -19,6 +19,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <chrono>
 #include <atomic>
+#include <cstdint>
 #include <functional>
 #include <vector>
 
@@ -136,8 +137,9 @@ private:
     std::atomic<bool>          noOpTriggered_{ false };
     std::atomic<std::uint64_t> noOpCount_{ 0 };
     std::vector<float>         blockParamSnapshot_;
+    std::int64_t               absoluteSampleCounter_ = 0;
 
-    DSPContext buildContext(int sampleIndex, int numChannels, int numSamples,
+    DSPContext buildContext(std::int64_t sampleIndex, int numChannels, int numSamples,
                             const juce::AudioPlayHead::CurrentPositionInfo& pos) const noexcept;
 };
 

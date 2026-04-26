@@ -11,6 +11,7 @@
 
 #include <string>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <unordered_map>
 
@@ -30,7 +31,7 @@ struct DSPContext {
     double sampleRate       = 44100.0;
     int    numChannels      = 2;
     int    numSamplesInBlock= 512;
-    int    currentSample    = 0;     ///< Sample index within the current block
+    std::int64_t currentSample = 0;  ///< Monotonic sample index since prepare()
 
     // ── Host transport ────────────────────────────────────────────────────────
     bool   isPlaying        = false;

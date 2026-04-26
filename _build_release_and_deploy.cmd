@@ -19,7 +19,7 @@ echo ==================================================================
 echo.
 
 REM Call vcvars to set up build environment
-call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 if errorlevel 1 (
     echo [ERROR] Failed to initialize Visual Studio environment.
     exit /b 1
@@ -27,7 +27,7 @@ if errorlevel 1 (
 
 REM Configure CMake for deployment
 echo [1] Configuring CMake...
-"C:\Program Files\CMake\bin\cmake.exe" -S . -B build -DAGENTVST_VST3_DEPLOY_DIR="C:\Users\salmo\Documents\VST3\AgentVST-Dev"
+"C:\Program Files\CMake\bin\cmake.exe" -S . -B build -DAGENTVST_VST3_DEPLOY_DIR="I:\Documents\Ableton\VST3\dev"
 if errorlevel 1 (
     echo [ERROR] CMake configuration failed.
     exit /b 1
@@ -36,7 +36,7 @@ if errorlevel 1 (
 REM Build Release configuration
 echo.
 echo [2] Building Release plugins...
-"C:\Program Files\CMake\bin\cmake.exe" --build build --config Release --parallel --target SimpleGain AgentCompressor AgentEQ Escher_Pitch_Shifter
+"C:\Program Files\CMake\bin\cmake.exe" --build build --config Release --parallel
 if errorlevel 1 (
     echo [ERROR] Build failed.
     exit /b 1
@@ -45,7 +45,7 @@ if errorlevel 1 (
 REM Verify deployment
 echo.
 echo [3] Verifying deployment...
-set DEPLOY_DIR=C:\Users\salmo\Documents\VST3\AgentVST-Dev
+set DEPLOY_DIR=I:\Documents\Ableton\VST3\dev
 
 if not exist "%DEPLOY_DIR%" (
     echo [WARNING] Deployment directory does not exist: %DEPLOY_DIR%

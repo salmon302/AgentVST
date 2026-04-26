@@ -10,6 +10,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <cstdint>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -71,13 +72,11 @@ public:
         if (paradoxAmount > 0.01f) {
             // Placeholder: High-pass and resonance to blur the fundamental
             float cutoff = 200.0f + (paradoxAmount * 1000.0f);
-            // Simple 1st-order HP placeholder
-            static float lastIn[kMaxChannels] = {0,0};
-            static float lastOut[kMaxChannels] = {0,0};
+            // Simple 1st-order HP
             float alpha = cutoff / (cutoff + (float)sampleRate_);
-            float hp = (1.0f - alpha) * (lastOut[channel] + dryProcessed - lastIn[channel]);
-            lastIn[channel] = dryProcessed;
-            lastOut[channel] = hp;
+            float hp = (1.0f - alpha) * (lastOut_[channel] + dryProcessed - lastIn_[channel]);
+            lastIn_[channel] = dryProcessed;
+            lastOut_[channel] = hp;
             dryProcessed = (dryProcessed * (1.0f - paradoxAmount)) + (hp * paradoxAmount);
         }
 
@@ -149,6 +148,8 @@ public:
         for (int ch = 0; ch < kMaxChannels; ++ch) {
             std::fill(delayBuffer_[ch].begin(), delayBuffer_[ch].end(), 0.0f);
             writePos_[ch] = 0;
+            lastIn_[ch] = 0.0f;
+            lastOut_[ch] = 0.0f;
         }
     }
 
@@ -159,7 +160,10 @@ private:
     int bufferSize_ = 0;
     double sampleRate_ = 44100.0;
     double phase_ = 0.0;
-    int channel0Processed_ = -1;
+    std::int64_t channel0Processed_ = -1;
+
+    float lastIn_[kMaxChannels] = {0.0f, 0.0f};
+    float lastOut_[kMaxChannels] = {0.0f, 0.0f};
 };
 
 AGENTVST_REGISTER_DSP(Escher_Pitch_ShifterProcessor)

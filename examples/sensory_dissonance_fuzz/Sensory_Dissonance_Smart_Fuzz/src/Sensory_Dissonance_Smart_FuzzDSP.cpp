@@ -8,6 +8,7 @@
 #include <AgentDSP.h>
 #include <cmath>
 #include <algorithm>
+#include <cstdint>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -100,7 +101,7 @@ private:
     double sampleRate_ = 44100.0;
     
     double roughnessPhase_ = 0.0;
-    int channel0Processed_ = -1;
+    std::int64_t channel0Processed_ = -1;
     
     float envFast_[kMaxChannels] = {0.0f, 0.0f};
     float envSlow_[kMaxChannels] = {0.0f, 0.0f};

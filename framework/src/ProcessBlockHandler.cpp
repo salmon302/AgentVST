@@ -31,6 +31,7 @@ void ProcessBlockHandler::prepare(double sampleRate, int maxBlockSize) {
     watchdogTriggered_.store(false, std::memory_order_relaxed);
     noOpTriggered_.store(false, std::memory_order_relaxed);
     unchangedBlockStreak_ = 0;
+    absoluteSampleCounter_ = 0;
 }
 
 void ProcessBlockHandler::setAgentDSP(IAgentDSP* agentDSP,
@@ -102,10 +103,19 @@ void ProcessBlockHandler::processBlock(
     double inputEnergy = 0.0;
     double diffEnergy  = 0.0;
 
-    DSPContext ctx = buildContext(0, numChannels, numSamples, posInfo);
+    const std::int64_t blockStartSample = absoluteSampleCounter_;
+
+    // Pre-fetch channel pointers to avoid calling getWritePointer in the inner loop
+    const int processingChannels = std::min(numChannels, 32); // Cap at 32 for safety
+    float* channelDataPtrs[32];
+    for (int ch = 0; ch < processingChannels; ++ch)
+        channelDataPtrs[ch] = buffer.getWritePointer(ch);
 
     for (int sample = 0; sample < numSamples; ++sample) {
-        ctx.currentSample = sample;
+        DSPContext ctx = buildContext(blockStartSample + static_cast<std::int64_t>(sample),
+                                      numChannels,
+                                      numSamples,
+                                      posInfo);
         // Watchdog check (every checkInterval_ samples)
         if (!timedOut && sample > 0 && (sample % checkInterval_) == 0) {
             auto now = std::chrono::high_resolution_clock::now();
@@ -125,9 +135,8 @@ void ProcessBlockHandler::processBlock(
             }
         }
 
-        for (int ch = 0; ch < numChannels; ++ch) {
-            float* channelData = buffer.getWritePointer(ch);
-            const float inputSample = channelData[sample];
+        for (int ch = 0; ch < processingChannels; ++ch) {
+            const float inputSample = channelDataPtrs[ch][sample];
             float outputSample = inputSample;
 
             if (!timedOut) {
@@ -145,10 +154,11 @@ void ProcessBlockHandler::processBlock(
                 diffEnergy += diff * diff;
             }
 
-            channelData[sample] = outputSample;
-            // If timed out: pass input through unchanged (silence is wrong for effect plugins)
+            channelDataPtrs[ch][sample] = outputSample;
         }
     }
+
+    absoluteSampleCounter_ = blockStartSample + static_cast<std::int64_t>(numSamples);
 
     bool noOpThisBlock = false;
     if (!timedOut && noOpDetectionEnabled_) {
@@ -213,7 +223,7 @@ void ProcessBlockHandler::resetNoOpStats() noexcept {
 }
 
 DSPContext ProcessBlockHandler::buildContext(
-    int sampleIndex, int numChannels, int numSamples,
+    std::int64_t sampleIndex, int numChannels, int numSamples,
     const juce::AudioPlayHead::CurrentPositionInfo& pos) const noexcept
 {
     DSPContext ctx;

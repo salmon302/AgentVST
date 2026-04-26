@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <vector>
 
 class ThreadOfMemoryMediantSplitterProcessor : public AgentVST::IAgentDSP {
@@ -144,7 +145,7 @@ private:
     std::array<float, kMaxChannels> lowState_{};
     std::array<float, kMaxChannels> lastGhost_{};
 
-    int sampleStamp_ = -1;
+    std::int64_t sampleStamp_ = -1;
     int analysisCounter_ = 0;
 
     float envelope_ = 0.0f;

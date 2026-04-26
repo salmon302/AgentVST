@@ -237,11 +237,16 @@ AgentVSTProcessor::buildParameterLayout() const {
 void AgentVSTProcessor::initParameterCache() {
     for (const auto& def : schema_.parameters) {
         std::atomic<float>* ptr = apvts_->getRawParameterValue(def.id);
-        if (ptr)
-            paramCache_.registerParameter(def.id, ptr);
-        else
+        if (ptr) {
+            const bool isBool = (def.type == "boolean");
+            const float minVal = isBool ? 0.0f : def.minValue;
+            const float maxVal = isBool ? 1.0f : def.maxValue;
+            const float skewVal = isBool ? 0.0f : def.skew;
+            paramCache_.registerParameter(def.id, ptr, minVal, maxVal, skewVal, isBool);
+        } else {
             juce::Logger::writeToLog("AgentVST: Warning — could not get raw pointer for: " +
                                      juce::String(def.id));
+        }
     }
     paramCache_.finalize();
 }
@@ -402,8 +407,8 @@ void AgentVSTProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     // Get host position info (JUCE 8: getPosition() replaces deprecated getCurrentPosition())
     juce::AudioPlayHead::CurrentPositionInfo posInfo{};
-    if (auto* playHead = getPlayHead()) {
-        if (auto pos = playHead->getPosition()) {
+    if (auto* currentPlayHead = getPlayHead()) {
+        if (auto pos = currentPlayHead->getPosition()) {
             posInfo.isPlaying   = pos->getIsPlaying();
             posInfo.bpm         = pos->getBpm().orFallback(120.0);
             posInfo.ppqPosition = pos->getPpqPosition().orFallback(0.0);
