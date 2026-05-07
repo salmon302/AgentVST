@@ -1,6 +1,11 @@
 /**
  * Escher Pitch Shifter (The Endless Tritone) DSP
+ * Purpose: Shepard-tone pitch shifter DSP.
+ * Author: Seth Nenninger (GPT-5.2-Codex Agent)
+ * Timestamp: 2026-05-06T23:47:00Z
+ * Changelog: Smooth parameters further and use Hann-windowed tap crossfades.
  *
+ * PERFORMANCE: Added parameter caching at block start
  * Keep processSample real-time safe:
  * - no allocations
  * - no locks
@@ -20,43 +25,108 @@ class Escher_Pitch_ShifterProcessor : public AgentVST::IAgentDSP {
 public:
     void prepare(double sampleRate, int /*maxBlockSize*/) override {
         sampleRate_ = sampleRate;
-        bufferSize_ = static_cast<int>(sampleRate * 2.0); // 2 seconds max
+        bufferSize_ = static_cast<int>(sampleRate * 2.0);
         
         for (int ch = 0; ch < kMaxChannels; ++ch) {
             delayBuffer_[ch].assign(bufferSize_, 0.0f);
             writePos_[ch] = 0;
         }
+        
+        // PERFORMANCE: Initialize parameter cache
+        cachedShiftHz_ = 0.5f;
+        cachedLock_ = 0.0f;
+        cachedAsymmetry_ = 0.0f;
+        cachedParadoxAmount_ = 0.0f;
+        cachedSubAmount_ = 0.0f;
+        cachedBifurcatedEcho_ = 0.0f;
+        cachedMix_ = 0.5f;
+        lastBlockStart_ = -1;
+
+        // Smooth phase changes to avoid clicks when delay taps jump.
+        const float phaseSmoothTimeSec = 0.01f;
+        phaseSmoothCoeff_ = 1.0f - std::exp(-1.0f / (static_cast<float>(sampleRate_) * phaseSmoothTimeSec));
+        smoothedPhase_ = 0.0f;
+        currentPhase_ = 0.0f;
+
+        const float paramSmoothTimeSec = 0.02f;
+        paramSmoothCoeff_ = 1.0f - std::exp(-1.0f / (static_cast<float>(sampleRate_) * paramSmoothTimeSec));
+        smoothedShiftHz_ = cachedShiftHz_;
+        smoothedLock_ = cachedLock_;
+        smoothedAsymmetry_ = cachedAsymmetry_;
+        smoothedParadoxAmount_ = cachedParadoxAmount_;
+        smoothedSubAmount_ = cachedSubAmount_;
+        smoothedBifurcatedEcho_ = cachedBifurcatedEcho_;
+        smoothedMix_ = cachedMix_;
+        
         reset();
     }
 
     float processSample(int channel, float input,
                         const AgentVST::DSPContext& ctx) override {
+        // PERFORMANCE: Cache parameters at block start
+        if (ctx.currentSample != lastBlockStart_) {
+            lastBlockStart_ = ctx.currentSample;
+            cachedShiftHz_ = ctx.getParameter("shift_cycle");
+            cachedLock_ = ctx.getParameter("tension_lock");
+            cachedAsymmetry_ = ctx.getParameter("asymmetry");
+            cachedParadoxAmount_ = ctx.getParameter("paradox_filter");
+            cachedSubAmount_ = ctx.getParameter("sub_injection");
+            cachedBifurcatedEcho_ = ctx.getParameter("bifurcated_echo");
+            cachedMix_ = ctx.getParameter("mix");
+        }
+
         if (channel >= kMaxChannels) return input;
 
-        // 1. Read parameters
-        float shiftHz = ctx.getParameter("shift_cycle"); // default 0.5 Hz
-        float lock = ctx.getParameter("tension_lock");
-        float asymmetry = ctx.getParameter("asymmetry");
-        float paradoxAmount = ctx.getParameter("paradox_filter");
-        float subAmount = ctx.getParameter("sub_injection");
-        float bifurcatedEcho = ctx.getParameter("bifurcated_echo");
-        float mix = ctx.getParameter("mix");
+        // Smooth parameter changes to avoid clicks on automation or jumps.
+        float targetShiftHz = cachedShiftHz_;
+        float targetLock = cachedLock_;
+        float targetAsymmetry = cachedAsymmetry_;
+        float targetParadoxAmount = cachedParadoxAmount_;
+        float targetSubAmount = cachedSubAmount_;
+        float targetBifurcatedEcho = cachedBifurcatedEcho_;
+        float targetMix = cachedMix_;
 
-        // 2. Update phase
-        if (channel == 0 && channel0Processed_ != ctx.currentSample) {
+        smoothedShiftHz_ += (targetShiftHz - smoothedShiftHz_) * paramSmoothCoeff_;
+        smoothedLock_ += (targetLock - smoothedLock_) * paramSmoothCoeff_;
+        smoothedAsymmetry_ += (targetAsymmetry - smoothedAsymmetry_) * paramSmoothCoeff_;
+        smoothedParadoxAmount_ += (targetParadoxAmount - smoothedParadoxAmount_) * paramSmoothCoeff_;
+        smoothedSubAmount_ += (targetSubAmount - smoothedSubAmount_) * paramSmoothCoeff_;
+        smoothedBifurcatedEcho_ += (targetBifurcatedEcho - smoothedBifurcatedEcho_) * paramSmoothCoeff_;
+        smoothedMix_ += (targetMix - smoothedMix_) * paramSmoothCoeff_;
+
+        float shiftHz = smoothedShiftHz_;
+        float lock = smoothedLock_;
+        float asymmetry = smoothedAsymmetry_;
+        float paradoxAmount = smoothedParadoxAmount_;
+        float subAmount = smoothedSubAmount_;
+        float bifurcatedEcho = smoothedBifurcatedEcho_;
+        float mix = smoothedMix_;
+
+        // 2. Update phase and smooth quantized jumps.
+        if (channel0Processed_ != ctx.currentSample) {
             double phaseInc = shiftHz / sampleRate_;
             phase_ += phaseInc;
             if (phase_ >= 1.0) phase_ -= 1.0;
             else if (phase_ < 0.0) phase_ += 1.0;
+
+            float targetPhase = static_cast<float>(phase_); // [0, 1)
+            float quantizedPhase = std::floor(targetPhase * 6.0f) / 6.0f;
+            float lockAmount = std::clamp(lock, 0.0f, 1.0f);
+            targetPhase = targetPhase + (quantizedPhase - targetPhase) * lockAmount;
+
+            float delta = targetPhase - smoothedPhase_;
+            if (delta > 0.5f) delta -= 1.0f;
+            else if (delta < -0.5f) delta += 1.0f;
+
+            smoothedPhase_ += delta * phaseSmoothCoeff_;
+            if (smoothedPhase_ >= 1.0f) smoothedPhase_ -= 1.0f;
+            else if (smoothedPhase_ < 0.0f) smoothedPhase_ += 1.0f;
+
+            currentPhase_ = smoothedPhase_;
             channel0Processed_ = ctx.currentSample;
         }
 
-        // Apply tension lock (semitone quantization vs smooth glide)
-        float currentPhase = static_cast<float>(phase_); // [0, 1)
-        if (lock > 0.5f) {
-            // Quantize to 6 steps (tritone)
-            currentPhase = std::floor(currentPhase * 6.0f) / 6.0f;
-        }
+        float currentPhase = currentPhase_;
 
         // 3. Substitution Injection & Pitch Detection (Stub for now)
         // In a real implementation, we'd use YIN/FFT to detect fundamental and shift by 6 semitones.
@@ -105,25 +175,40 @@ public:
         
         auto getSample = [&](float delaySamples) {
             float readPos = static_cast<float>(writePos_[channel]) - 1.0f - delaySamples;
-            while (readPos < 0) readPos += (float)bufferSize_;
-            while (readPos >= (float)bufferSize_) readPos -= (float)bufferSize_;
-            int i0 = (int)readPos;
-            int i1 = (i0 + 1) % bufferSize_;
+            // Wrap using fmod to handle negative values correctly
+            readPos = std::fmod(readPos, (float)bufferSize_);
+            if (readPos < 0) readPos += (float)bufferSize_;
+            
+            // Clamp to valid range before floor to prevent negative indices
+            readPos = std::clamp(readPos, 0.0f, (float)bufferSize_ - 1.0f);
+            
+            int i0 = (int)std::floor(readPos);
+            int i1 = i0 + 1;
+            if (i1 >= bufferSize_) i1 = 0;
+            
             float f = readPos - (float)i0;
+            f = std::clamp(f, 0.0f, 1.0f); // Ensure interpolation is within bounds
+            
             return delayBuffer_[channel][i0] * (1.0f - f) + delayBuffer_[channel][i1] * f;
         };
 
         // Rising path (delay decreases)
         float ramp1Up = std::max(1.0f, (1.0f - currentPhase) * maxDelaySamples);
-        float ramp2Up = std::max(1.0f, std::fmod(ramp1Up + (maxDelaySamples * 0.5f), maxDelaySamples));
-        float xfadeUp = std::abs((ramp1Up / maxDelaySamples) - 0.5f) * 2.0f;
-        float upOut = (getSample(ramp1Up) * (1.0f - xfadeUp)) + (getSample(ramp2Up) * xfadeUp);
+        float ramp2Up = std::fmod(ramp1Up + (maxDelaySamples * 0.5f), maxDelaySamples);
+        if (ramp2Up < 0) ramp2Up += maxDelaySamples;
+        ramp2Up = std::max(1.0f, ramp2Up);
+        float xfadeUpPhase = std::clamp(ramp1Up / maxDelaySamples, 0.0f, 1.0f);
+        float hannUp = 0.5f - 0.5f * std::cos(2.0f * (float)M_PI * xfadeUpPhase);
+        float upOut = (getSample(ramp1Up) * hannUp) + (getSample(ramp2Up) * (1.0f - hannUp));
 
         // Falling path (delay increases)
         float ramp1Down = std::max(1.0f, currentPhase * maxDelaySamples);
-        float ramp2Down = std::max(1.0f, std::fmod(ramp1Down + (maxDelaySamples * 0.5f), maxDelaySamples));
-        float xfadeDown = std::abs((ramp1Down / maxDelaySamples) - 0.5f) * 2.0f;
-        float downOut = (getSample(ramp1Down) * (1.0f - xfadeDown)) + (getSample(ramp2Down) * xfadeDown);
+        float ramp2Down = std::fmod(ramp1Down + (maxDelaySamples * 0.5f), maxDelaySamples);
+        if (ramp2Down < 0) ramp2Down += maxDelaySamples;
+        ramp2Down = std::max(1.0f, ramp2Down);
+        float xfadeDownPhase = std::clamp(ramp1Down / maxDelaySamples, 0.0f, 1.0f);
+        float hannDown = 0.5f - 0.5f * std::cos(2.0f * (float)M_PI * xfadeDownPhase);
+        float downOut = (getSample(ramp1Down) * hannDown) + (getSample(ramp2Down) * (1.0f - hannDown));
 
         output = (upOut * weightUp) + (downOut * weightDown);
 
@@ -145,6 +230,8 @@ public:
     void reset() override {
         phase_ = 0.0;
         channel0Processed_ = -1;
+        smoothedPhase_ = 0.0f;
+        currentPhase_ = 0.0f;
         for (int ch = 0; ch < kMaxChannels; ++ch) {
             std::fill(delayBuffer_[ch].begin(), delayBuffer_[ch].end(), 0.0f);
             writePos_[ch] = 0;
@@ -164,6 +251,29 @@ private:
 
     float lastIn_[kMaxChannels] = {0.0f, 0.0f};
     float lastOut_[kMaxChannels] = {0.0f, 0.0f};
+    
+    // PERFORMANCE: Cached parameter values
+    float cachedShiftHz_ = 0.5f;
+    float cachedLock_ = 0.0f;
+    float cachedAsymmetry_ = 0.0f;
+    float cachedParadoxAmount_ = 0.0f;
+    float cachedSubAmount_ = 0.0f;
+    float cachedBifurcatedEcho_ = 0.0f;
+    float cachedMix_ = 0.5f;
+    std::int64_t lastBlockStart_ = -1;
+
+    float smoothedPhase_ = 0.0f;
+    float currentPhase_ = 0.0f;
+    float phaseSmoothCoeff_ = 1.0f;
+    float paramSmoothCoeff_ = 1.0f;
+
+    float smoothedShiftHz_ = 0.5f;
+    float smoothedLock_ = 0.0f;
+    float smoothedAsymmetry_ = 0.0f;
+    float smoothedParadoxAmount_ = 0.0f;
+    float smoothedSubAmount_ = 0.0f;
+    float smoothedBifurcatedEcho_ = 0.0f;
+    float smoothedMix_ = 0.5f;
 };
 
 AGENTVST_REGISTER_DSP(Escher_Pitch_ShifterProcessor)

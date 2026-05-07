@@ -79,10 +79,12 @@ if(AGENTVST_BUILD_EXAMPLES)
     add_subdirectory(examples/dualism_undertone_anchor/DualismUndertoneAnchor)
     add_subdirectory(examples/thread_of_memory_mediant_splitter/ThreadOfMemoryMediantSplitter)
     add_subdirectory(examples/lacrimosa_6_5_modulator/Lacrimosa65Modulator)
-    add_subdirectory(examples/reluctant_resolution_temporal_suspension/ReluctantResolutionTemporalSuspension)
+    # add_subdirectory(examples/reluctant_resolution_temporal_suspension/ReluctantResolution)
     add_subdirectory(examples/transients_to_texture/TransientsToTexture)
     add_subdirectory(examples/anti_loudness_transient_restorer/AntiLoudnessTransientRestorer)
     add_subdirectory(examples/bimodal_weight_fletcher_munson_eq/bimodal_weight_fletcher_munson_eq)
+    add_subdirectory(examples/kinetic_drum_engine/KineticDrumEngine)
+add_subdirectory(examples/escher_shift/Escher_Shift)
 endif()
 
 # ─────────────────────────────────────────────────────────────────────────────

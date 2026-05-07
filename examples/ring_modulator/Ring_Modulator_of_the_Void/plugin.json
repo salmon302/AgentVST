@@ -43,6 +43,29 @@
       "group": "envelope"
     },
     {
+      "id": "carrier_waveform",
+      "name": "Carrier Waveform",
+      "type": "choice",
+      "choices": [
+        { "value": 0, "label": "Sine" },
+        { "value": 1, "label": "Triangle" }
+      ],
+      "default": 0,
+      "group": "modulation"
+    },
+    {
+      "id": "drift_rate",
+      "name": "Drift Rate",
+      "type": "float",
+      "min": 0.1,
+      "max": 20.0,
+      "default": 2.0,
+      "unit": "Hz",
+      "step": 0.1,
+      "skew": 1.0,
+      "group": "modulation"
+    },
+    {
       "id": "bypass",
       "name": "Bypass",
       "type": "boolean",
@@ -56,7 +79,9 @@
       "name": "Modulation",
       "parameters": [
         "inharmonicity",
-        "carrier_drift"
+        "carrier_drift",
+        "carrier_waveform",
+        "drift_rate"
       ]
     },
     {

@@ -105,25 +105,30 @@ public:
 
     float processSample(int channel, float input, const AgentVST::DSPContext& ctx) override {
         if (channel >= 2) return input;
-        
-        float morphSpeed = ctx.getParameter("morph_speed_hz");
-        float morphMode = ctx.getParameter("morph_mode"); // 0=Linear, 1=Granular
-        float mix = ctx.getParameter("mix");
-        
+
+        // Cache parameters per block
+        if (ctx.currentSample != lastBlockStart_) {
+            lastBlockStart_ = ctx.currentSample;
+            cachedMorphSpeed_ = ctx.getParameter("morph_speed_hz");
+            cachedMorphMode_ = ctx.getParameter("morph_mode"); // 0=Linear, 1=Granular
+            cachedMix_ = ctx.getParameter("mix");
+            cachedLfoInc_ = (2.0f * M_PI * cachedMorphSpeed_) / static_cast<float>(fs);
+        }
+
         if (channel == 0) {
-            lfoPhase += (2.0f * M_PI * morphSpeed) / fs;
+            lfoPhase += cachedLfoInc_;
             if (lfoPhase >= 2.0f * M_PI) lfoPhase -= 2.0f * M_PI;
         }
-        
+
         // Compute crossfade value (0.0 to 1.0)
         float morphVal = 0.0f;
-        if (morphMode < 0.5f) {
+        if (cachedMorphMode_ < 0.5f) {
             // Linear Sine Crossfade
             morphVal = (std::sin(lfoPhase) + 1.0f) * 0.5f;
         } else {
-            // Granular Shattered Crossfade - fast hard-switches 
-            // We use a high-frequency derived square wave for rapid, jarring chopping
-            float granularPhase = std::fmod(lfoPhase * 16.0f, 2.0f * M_PI);
+            // Granular Shattered Crossfade - fast hard-switches
+            float granularPhase = lfoPhase * 16.0f;
+            while (granularPhase >= 2.0f * M_PI) granularPhase -= 2.0f * M_PI;
             morphVal = (granularPhase < M_PI) ? 1.0f : 0.0f;
         }
 
@@ -142,7 +147,7 @@ public:
         // Crossfade
         float wet = revA * (1.0f - morphVal) + revB * morphVal;
         
-        return input * (1.0f - mix) + wet * mix;
+        return input * (1.0f - cachedMix_) + wet * cachedMix_;
     }
 
     void reset() override {
@@ -159,6 +164,12 @@ private:
         FC_Allpass apfB1[2], apfB2[2];
         
         float lfoPhase = 0.0f;
+        // Block-level cache
+        std::int64_t lastBlockStart_ = -1;
+        float cachedMorphSpeed_ = 0.0f;
+        float cachedMorphMode_ = 0.0f;
+        float cachedMix_ = 0.0f;
+        float cachedLfoInc_ = 0.0f;
 };
 
 AGENTVST_REGISTER_DSP(FalseMemoryConvolutionProcessor)

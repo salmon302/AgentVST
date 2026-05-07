@@ -1,4 +1,12 @@
+/**
+ * AntiLoudnessTransientRestorerDSP.cpp
+ * Purpose: Restore transient impact with soft-knee transient detection.
+ * Author: Seth Nenninger (GPT-5.2-Codex Agent)
+ * Timestamp: 2026-05-06T23:55:00Z
+ * Changelog: Add transient slope control and tighten dB ranges.
+ */
 #include <AgentDSP.h>
+#include <algorithm>
 #include <cmath>
 
 class AntiLoudnessTransientRestorerProcessor : public AgentVST::IAgentDSP {
@@ -22,12 +30,27 @@ public:
     float processSample(int channel, float input,
                         const AgentVST::DSPContext& ctx) override {
         if (channel >= 2) return input;
-        
-        float sledge_db = ctx.getParameter("sledgehammer_gain");
-        float attack_ms = ctx.getParameter("attack_ms");
-        float tail_db = ctx.getParameter("tail_crushing");
+        // Cache parameters per block
+        if (ctx.currentSample != lastBlockStart_) {
+            lastBlockStart_ = ctx.currentSample;
+            cachedSledgeDb_ = ctx.getParameter("sledgehammer_gain");
+            cachedAttackMs_ = ctx.getParameter("attack_ms");
+            cachedTailDb_ = ctx.getParameter("tail_crushing");
+            cachedSlopeDb_ = ctx.getParameter("transient_slope_db");
+            cachedAttackCoeff_ = std::exp(-1.0f / (cachedAttackMs_ * 0.001f * sampleRate_));
 
-        float attack_coeff = std::exp(-1.0f / (attack_ms * 0.001f * sampleRate_));
+            const float slopeDb = std::max(0.1f, cachedSlopeDb_);
+            const float halfSlopeDb = 0.5f * slopeDb;
+            const float halfSlopeRatio = std::pow(10.0f, halfSlopeDb / 20.0f);
+            cachedLowerRatio_ = kTransientRatio / halfSlopeRatio;
+            cachedUpperRatio_ = kTransientRatio * halfSlopeRatio;
+        }
+
+        float sledge_db = cachedSledgeDb_;
+        float attack_ms = cachedAttackMs_;
+        float tail_db = cachedTailDb_;
+
+        float attack_coeff = cachedAttackCoeff_;
 
         auto& state = ch_state[channel];
         float env_in = std::abs(input);
@@ -40,10 +63,21 @@ public:
         if (env_in > state.slow_env) state.slow_env += a2_ * (env_in - state.slow_env);
         else state.slow_env += r2_ * (env_in - state.slow_env);
 
-        bool is_transient = (state.peak_env > state.slow_env * 2.0f);
-        
-        if (is_transient) {
-            state.transient_env = 1.0f;
+        float ratio = 0.0f;
+        if (state.peak_env > 1e-6f) {
+            ratio = state.peak_env / std::max(state.slow_env, 1e-6f);
+        }
+
+        float transientAmount = 0.0f;
+        if (cachedUpperRatio_ > cachedLowerRatio_ + 1e-9f) {
+            float x = (ratio - cachedLowerRatio_) / (cachedUpperRatio_ - cachedLowerRatio_);
+            x = std::clamp(x, 0.0f, 1.0f);
+            transientAmount = x * x * (3.0f - 2.0f * x);
+        }
+
+        if (transientAmount > 0.0f) {
+            if (transientAmount > state.transient_env)
+                state.transient_env = transientAmount;
             state.tail_env = 0.0f; // Reset tail suppression on transient
         }
 
@@ -85,6 +119,17 @@ private:
     float r1_ = 0.0f;
     float a2_ = 0.0f;
     float r2_ = 0.0f;
+    static constexpr float kTransientRatio = 2.0f;
+
+    // Block cache
+    int lastBlockStart_ = -1;
+    float cachedSledgeDb_ = 0.0f;
+    float cachedAttackMs_ = 1.0f;
+    float cachedTailDb_ = 0.0f;
+    float cachedSlopeDb_ = 6.0f;
+    float cachedLowerRatio_ = kTransientRatio;
+    float cachedUpperRatio_ = kTransientRatio;
+    float cachedAttackCoeff_ = 0.0f;
 
     struct ChannelState {
         float peak_env;

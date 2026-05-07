@@ -1,0 +1,198 @@
+{
+  "plugin": {
+    "name":     "AgentKineticDrumEngine",
+    "version":  "1.0.0",
+    "vendor":   "AgentVST",
+    "category": "Dynamics"
+  },
+  "parameters": [
+    {
+      "id":      "bypass",
+      "name":    "Bypass",
+      "type":    "boolean",
+      "default": false,
+      "group":   "output"
+    },
+    {
+      "id":      "input_gain_db",
+      "name":    "Input Gain",
+      "type":    "float",
+      "min":     -12.0,
+      "max":     12.0,
+      "default": 0.0,
+      "unit":    "dB",
+      "group":   "input"
+    },
+    {
+      "id":      "output_gain_db",
+      "name":    "Output Gain",
+      "type":    "float",
+      "min":     -12.0,
+      "max":     12.0,
+      "default": 0.0,
+      "unit":    "dB",
+      "group":   "output"
+    },
+    {
+      "id":      "auto_carving_enable",
+      "name":    "Auto-Carving Enable",
+      "type":    "boolean",
+      "default": true,
+      "group":   "auto_carving"
+    },
+    {
+      "id":      "auto_carving_freq_hz",
+      "name":    "Auto-Carving Frequency",
+      "type":    "float",
+      "min":     100.0,
+      "max":     800.0,
+      "default": 375.0,
+      "unit":    "Hz",
+      "group":   "auto_carving"
+    },
+    {
+      "id":      "auto_carving_q",
+      "name":    "Auto-Carving Q",
+      "type":    "float",
+      "min":     0.5,
+      "max":     4.0,
+      "default": 1.5,
+      "group":   "auto_carving"
+    },
+    {
+      "id":      "auto_carving_max_cut_db",
+      "name":    "Auto-Carving Max Cut",
+      "type":    "float",
+      "min":     0.0,
+      "max":     18.0,
+      "default": 8.0,
+      "unit":    "dB",
+      "group":   "auto_carving"
+    },
+    {
+      "id":      "upward_smasher_enable",
+      "name":    "Upward Smasher Enable",
+      "type":    "boolean",
+      "default": true,
+      "group":   "upward_smasher"
+    },
+    {
+      "id":      "upward_smasher_threshold_db",
+      "name":    "Upward Smasher Threshold",
+      "type":    "float",
+      "min":     -50.0,
+      "max":     -10.0,
+      "default": -30.0,
+      "unit":    "dB",
+      "group":   "upward_smasher"
+    },
+    {
+      "id":      "upward_smasher_ratio",
+      "name":    "Upward Smasher Ratio",
+      "type":    "float",
+      "min":     1.0,
+      "max":     10.0,
+      "default": 4.0,
+      "group":   "upward_smasher"
+    },
+    {
+      "id":      "upward_smasher_saturation",
+      "name":    "Upward Smasher Saturation",
+      "type":    "float",
+      "min":     0.0,
+      "max":     1.0,
+      "default": 0.5,
+      "group":   "upward_smasher"
+    },
+    {
+      "id":      "upward_smasher_mix",
+      "name":    "Upward Smasher Mix",
+      "type":    "float",
+      "min":     0.0,
+      "max":     1.0,
+      "default": 0.7,
+      "group":   "upward_smasher"
+    },
+    {
+      "id":      "dynamic_tilt_enable",
+      "name":    "Dynamic Tilt Enable",
+      "type":    "boolean",
+      "default": true,
+      "group":   "dynamic_tilt"
+    },
+    {
+      "id":      "dynamic_tilt_low_freq_hz",
+      "name":    "Dynamic Tilt Low Freq",
+      "type":    "float",
+      "min":     80.0,
+      "max":     500.0,
+      "default": 200.0,
+      "unit":    "Hz",
+      "group":   "dynamic_tilt"
+    },
+    {
+      "id":      "dynamic_tilt_high_freq_hz",
+      "name":    "Dynamic Tilt High Freq",
+      "type":    "float",
+      "min":     2000.0,
+      "max":     12000.0,
+      "default": 6000.0,
+      "unit":    "Hz",
+      "group":   "dynamic_tilt"
+    },
+    {
+      "id":      "dynamic_tilt_max_boost_db",
+      "name":    "Dynamic Tilt Max Boost",
+      "type":    "float",
+      "min":     0.0,
+      "max":     6.0,
+      "default": 3.0,
+      "unit":    "dB",
+      "group":   "dynamic_tilt"
+    },
+    {
+      "id":      "dynamic_tilt_max_cut_db",
+      "name":    "Dynamic Tilt Max Cut",
+      "type":    "float",
+      "min":     0.0,
+      "max":     12.0,
+      "default": 6.0,
+      "unit":    "dB",
+      "group":   "dynamic_tilt"
+    },
+    {
+      "id":      "dynamic_ms_enable",
+      "name":    "M/S Splash Enable",
+      "type":    "boolean",
+      "default": true,
+      "group":   "dynamic_ms"
+    },
+    {
+      "id":      "dynamic_ms_hp_freq_hz",
+      "name":    "M/S Splash HP Freq",
+      "type":    "float",
+      "min":     500.0,
+      "max":     8000.0,
+      "default": 2000.0,
+      "unit":    "Hz",
+      "group":   "dynamic_ms"
+    },
+    {
+      "id":      "dynamic_ms_expansion",
+      "name":    "M/S Splash Expansion",
+      "type":    "float",
+      "min":     1.0,
+      "max":     4.0,
+      "default": 2.0,
+      "group":   "dynamic_ms"
+    }
+  ],
+  "groups": [
+    { "id": "input",           "name": "Input",           "parameters": ["input_gain_db"] },
+    { "id": "auto_carving",    "name": "Auto-Carving",     "parameters": ["auto_carving_enable", "auto_carving_freq_hz", "auto_carving_q", "auto_carving_max_cut_db"] },
+    { "id": "upward_smasher",  "name": "Upward Smasher",   "parameters": ["upward_smasher_enable", "upward_smasher_threshold_db", "upward_smasher_ratio", "upward_smasher_saturation", "upward_smasher_mix"] },
+    { "id": "dynamic_tilt",    "name": "Dynamic Tilt",      "parameters": ["dynamic_tilt_enable", "dynamic_tilt_low_freq_hz", "dynamic_tilt_high_freq_hz", "dynamic_tilt_max_boost_db", "dynamic_tilt_max_cut_db"] },
+    { "id": "dynamic_ms",      "name": "M/S Splash",        "parameters": ["dynamic_ms_enable", "dynamic_ms_hp_freq_hz", "dynamic_ms_expansion"] },
+    { "id": "output",          "name": "Output",           "parameters": ["output_gain_db", "bypass"] }
+  ]
+}

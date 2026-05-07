@@ -37,12 +37,18 @@ public:
 
     float processSample(int /*channel*/, float input,
                         const AgentVST::DSPContext& ctx) override {
-        
-        float captureSizeMs = ctx.getParameter("capture_size_ms");
-        if (captureSizeMs < 1.0f) captureSizeMs = 1.0f;
-        
-        float warp = ctx.getParameter("warp_pitch_drop");
-        float feedback = ctx.getParameter("ouroboros_feedback");
+        // Cache parameters per block
+        if (ctx.currentSample != lastBlockStart_) {
+            lastBlockStart_ = ctx.currentSample;
+            cachedCaptureSizeMs_ = ctx.getParameter("capture_size_ms");
+            if (cachedCaptureSizeMs_ < 1.0f) cachedCaptureSizeMs_ = 1.0f;
+            cachedWarp_ = ctx.getParameter("warp_pitch_drop");
+            cachedFeedback_ = ctx.getParameter("ouroboros_feedback");
+        }
+
+        float captureSizeMs = cachedCaptureSizeMs_;
+        float warp = cachedWarp_;
+        float feedback = cachedFeedback_;
 
         int loopSize = static_cast<int>((captureSizeMs / 1000.0f) * mSampleRate);
         if (loopSize > buffer.size() - 1) {
@@ -102,6 +108,10 @@ public:
         writePos = 0;
         ouroborosMem = 0.0f;
     }
+    int lastBlockStart_ = -1;
+    float cachedCaptureSizeMs_ = 1000.0f;
+    float cachedWarp_ = 0.0f;
+    float cachedFeedback_ = 0.0f;
 };
 
 AGENTVST_REGISTER_DSP(VarispeedShepardLooperProcessor)

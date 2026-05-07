@@ -31,6 +31,42 @@
       "group": "tone"
     },
     {
+      "id": "depth",
+      "name": "Depth",
+      "type": "float",
+      "min": 1.0,
+      "max": 10.0,
+      "default": 4.0,
+      "unit": "partials",
+      "step": 0.1,
+      "skew": 0.7,
+      "group": "tone"
+    },
+    {
+      "id": "viscosity",
+      "name": "Viscosity",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%",
+      "step": 0.1,
+      "skew": 1.0,
+      "group": "motion"
+    },
+    {
+      "id": "sinking_speed",
+      "name": "Sinking Speed",
+      "type": "float",
+      "min": 10.0,
+      "max": 500.0,
+      "default": 120.0,
+      "unit": "ms",
+      "step": 1.0,
+      "skew": 0.6,
+      "group": "motion"
+    },
+    {
       "id": "tracking_speed",
       "name": "Tracking Speed",
       "type": "float",
@@ -68,7 +104,16 @@
       "name": "Tone",
       "parameters": [
         "overtone_undertone_bias",
-        "gravity"
+        "gravity",
+        "depth"
+      ]
+    },
+    {
+      "id": "motion",
+      "name": "Motion",
+      "parameters": [
+        "viscosity",
+        "sinking_speed"
       ]
     },
     {

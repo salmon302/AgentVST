@@ -1,4 +1,9 @@
-﻿#include <AgentDSP.h>
+﻿// Purpose: DifferentialGlideModulator DSP processing.
+// Author: Seth Nenninger (GPT-5.2-Codex Agent)
+// Timestamp: 2026-05-05T04:38:27Z
+// Changelog: Clamp delay offsets, normalize band mix, and fix denormal handling.
+
+#include <AgentDSP.h>
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -34,9 +39,9 @@ struct LinkwitzRiley {
         b2 = (float)((1.0 - alpha) / a0_p);
     }
     float process(int ch, float in) {
-        // Add a tiny DC offset to prevent floating-point denormals (subnormals)
-        // causing massive CPU spikes leading to watchdog bypasses.
-        in += 1e-9f;
+        // Add a tiny DC offset to prevent denormals (subnormals) on some CPUs.
+        constexpr float kDenormOffset = 1e-9f;
+        in += kDenormOffset;
         float out = in * a0 + z1[ch];
         z1[ch] = in * a1 - out * b1 + z2[ch];
         z2[ch] = in * a2 - out * b2;
@@ -45,7 +50,7 @@ struct LinkwitzRiley {
         if (std::abs(z1[ch]) < 1e-9f) z1[ch] = 0.0f;
         if (std::abs(z2[ch]) < 1e-9f) z2[ch] = 0.0f;
         
-        return out - 1e-9f * a0;
+        return out;
     }
 };
 
@@ -126,13 +131,20 @@ public:
         // Base delay modulation
         float lfo = std::sin(phase * 2.0f * (float)PI);
         
-        float baseDelayMs = 15.0f; 
-        float modulationMs = barDepth * 10.0f; 
+        float baseDelayMs = 15.0f;
+        float modulationMs = barDepth * 10.0f;
+        const float minDelaySamples = static_cast<float>(mSampleRate * 0.005); // 5 ms floor
+        const float maxDelaySamples = static_cast<float>(mSampleRate - 2.0);
         
         // Apply differential tension parameters (different string offsets)
         float offsetLow = mSampleRate * ((baseDelayMs + lfo * modulationMs * (1.0f - stringTension * 0.5f)) / 1000.0f);
         float offsetMid = mSampleRate * ((baseDelayMs + lfo * modulationMs) / 1000.0f);
-        float offsetHigh= mSampleRate * ((baseDelayMs + lfo * modulationMs * (1.0f + stringTension * 0.5f)) / 1000.0f);
+        float offsetHigh = mSampleRate * ((baseDelayMs + lfo * modulationMs * (1.0f + stringTension * 0.5f)) / 1000.0f);
+
+        // Avoid zero/negative delays and clamp to buffer length.
+        offsetLow = std::clamp(offsetLow, minDelaySamples, maxDelaySamples);
+        offsetMid = std::clamp(offsetMid, minDelaySamples, maxDelaySamples);
+        offsetHigh = std::clamp(offsetHigh, minDelaySamples, maxDelaySamples);
         
         delayLow[channel].write(low);
         float modLow = delayLow[channel].read(offsetLow);
@@ -143,7 +155,7 @@ public:
         delayHigh[channel].write(high);
         float modHigh = delayHigh[channel].read(offsetHigh);
         
-        return modLow + modMid + modHigh;
+        return (modLow + modMid + modHigh) * (1.0f / 3.0f);
     }
 
     void reset() override {

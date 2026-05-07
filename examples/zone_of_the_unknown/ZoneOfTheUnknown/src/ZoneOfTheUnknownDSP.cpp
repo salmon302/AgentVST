@@ -27,9 +27,19 @@ public:
                         const AgentVST::DSPContext& ctx) override {
         if (channel >= 2) return input;
 
-        float maskRemoval = ctx.getParameter("mask_removal") / 100.0f;
-        float scatterMs = ctx.getParameter("granular_scatter");
-        float horrorBlend = ctx.getParameter("horror_blend") / 100.0f;
+        // Cache parameters per block
+        if (ctx.currentSample != lastBlockStart_) {
+            lastBlockStart_ = ctx.currentSample;
+            sampleStamp_ = ctx.currentSample;
+            cachedMaskRemoval_ = ctx.getParameter("mask_removal") / 100.0f;
+            cachedScatterMs_ = ctx.getParameter("granular_scatter");
+            cachedHorrorBlend_ = ctx.getParameter("horror_blend") / 100.0f;
+            cachedMaxScatterSamples_ = (cachedScatterMs_ / 1000.0f) * static_cast<float>(sampleRate_);
+        }
+
+        float maskRemoval = cachedMaskRemoval_;
+        float scatterMs = cachedScatterMs_;
+        float horrorBlend = cachedHorrorBlend_;
 
         // Envelope follower to detect loud vs quiet
         float attack = 0.01f;
@@ -62,7 +72,13 @@ public:
         scatterPhase_ += 1.0f / (sampleRate_ * 0.1f); // 10Hz variation
         if (scatterPhase_ > 1.0f) {
             scatterPhase_ -= 1.0f;
-            targetOffset_ = static_cast<float>(rand()) / RAND_MAX * maxScatterSamples;
+            // deterministic pseudo-random based on writePos and sampleStamp_
+            unsigned int v = static_cast<unsigned int>((writePos_[channel] + static_cast<int>(sampleStamp_)));
+            v = (v ^ 61) ^ (v >> 16);
+            v = v + (v << 3);
+            v = v ^ (v >> 4);
+            float randVal = static_cast<float>(v % 10000) / 10000.0f;
+            targetOffset_ = randVal * cachedMaxScatterSamples_;
         }
         
         currentOffset_ += (targetOffset_ - currentOffset_) * 0.005f;
@@ -103,6 +119,13 @@ private:
     float scatterPhase_ = 0.0f;
     float targetOffset_ = 0.0f;
     float currentOffset_ = 0.0f;
+    // block cache
+    std::int64_t sampleStamp_ = -1;
+    std::int64_t lastBlockStart_ = -1;
+    float cachedMaskRemoval_ = 0.0f;
+    float cachedScatterMs_ = 0.0f;
+    float cachedHorrorBlend_ = 0.0f;
+    float cachedMaxScatterSamples_ = 0.0f;
 };
 
 AGENTVST_REGISTER_DSP(ZoneOfTheUnknownProcessor)

@@ -1,4 +1,9 @@
-﻿#include <AgentDSP.h>
+﻿// Purpose: NegativeSpaceDelay DSP processing.
+// Author: Seth Nenninger (GPT-5.2-Codex Agent)
+// Timestamp: 2026-05-05T04:46:06Z
+// Changelog: Smooth delay/feedback and add fractional delay reads to reduce glitches.
+
+#include <AgentDSP.h>
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -47,9 +52,13 @@ class NegativeSpaceDelayProcessor : public AgentVST::IAgentDSP {
     float envLow[2] = {0.f, 0.f};
     float envMid[2] = {0.f, 0.f};
     float envHigh[2] = {0.f, 0.f};
+    float smoothedDelay[2] = {0.f, 0.f};
+    float smoothedFeedback[2] = {0.f, 0.f};
     
     float attackFast = 0.f;
     float releaseMed = 0.f;
+    float delaySmoothCoeff = 0.f;
+    float feedbackSmoothCoeff = 0.f;
 
 public:
     NegativeSpaceDelayProcessor() {
@@ -69,6 +78,8 @@ public:
         
         attackFast = std::exp(-1.0f / (0.01f * float(sampleRate))); 
         releaseMed = std::exp(-1.0f / (0.3f * float(sampleRate))); 
+        delaySmoothCoeff = std::exp(-1.0f / (0.02f * float(sampleRate)));
+        feedbackSmoothCoeff = std::exp(-1.0f / (0.05f * float(sampleRate)));
         
         reset();
     }
@@ -81,9 +92,18 @@ public:
         float evasion = ctx.getParameter("spectral_evasion") / 100.0f; 
         float echoTimeMs = ctx.getParameter("echo_time"); 
         float feedback = ctx.getParameter("feedback") / 100.0f;
-        
-        int delaySamples = (int)(mSampleRate * (echoTimeMs / 1000.0f));
-        delaySamples = std::max(1, std::min(delaySamples, (int)delayLines[channel].size() - 1));
+
+        float delaySamplesTarget = static_cast<float>(mSampleRate * (echoTimeMs / 1000.0f));
+        float maxDelay = static_cast<float>(delayLines[channel].size() - 2);
+        delaySamplesTarget = std::clamp(delaySamplesTarget, 1.0f, maxDelay);
+        float& delaySmooth = smoothedDelay[channel];
+        if (delaySmooth <= 0.0f) delaySmooth = delaySamplesTarget;
+        delaySmooth = delaySmoothCoeff * delaySmooth + (1.0f - delaySmoothCoeff) * delaySamplesTarget;
+
+        float feedbackTarget = std::clamp(feedback, 0.0f, 0.95f);
+        float& fbSmooth = smoothedFeedback[channel];
+        if (fbSmooth <= 0.0f) fbSmooth = feedbackTarget;
+        fbSmooth = feedbackSmoothCoeff * fbSmooth + (1.0f - feedbackSmoothCoeff) * feedbackTarget;
         
         float lowDry = bpLow_dry.process(channel, input);
         float midDry = bpMid_dry.process(channel, input);
@@ -106,10 +126,14 @@ public:
         float dM = std::max(0.0f, 1.0f - (envMid[channel] * 15.0f * evasion));
         float dH = std::max(0.0f, 1.0f - (envHigh[channel] * 15.0f * evasion));
 
-        int rp = writePos[channel] - delaySamples;
-        if (rp < 0) rp += delayLines[channel].size();
-        
-        float delayed = delayLines[channel][rp];
+        float rp = static_cast<float>(writePos[channel]) - delaySmooth;
+        while (rp < 0.0f) rp += delayLines[channel].size();
+        while (rp >= delayLines[channel].size()) rp -= delayLines[channel].size();
+
+        int i1 = static_cast<int>(rp);
+        int i2 = (i1 + 1) % delayLines[channel].size();
+        float frac = rp - static_cast<float>(i1);
+        float delayed = delayLines[channel][i1] * (1.0f - frac) + delayLines[channel][i2] * frac;
         
         float lowWet = bpLow_wet.process(channel, delayed);
         float midWet = bpMid_wet.process(channel, delayed);
@@ -119,10 +143,11 @@ public:
         
         float duckedDelay = (lowWet * dL) + (midWet * dM) + (highWet * dH) + remainder;
         
-        delayLines[channel][writePos[channel]] = input + duckedDelay * feedback;
+        delayLines[channel][writePos[channel]] = input + duckedDelay * fbSmooth;
         writePos[channel] = (writePos[channel] + 1) % delayLines[channel].size();
-        
-        return input + duckedDelay * 0.5f;
+
+        float output = input + duckedDelay * 0.5f;
+        return std::tanh(output);
     }
 
     void reset() override {
@@ -135,6 +160,8 @@ public:
         bpHigh_wet.reset();
         for(int i=0; i<2; ++i) {
             envLow[i] = envMid[i] = envHigh[i] = 0.0f;
+            smoothedDelay[i] = 0.0f;
+            smoothedFeedback[i] = 0.0f;
             writePos[i] = 0;
         }
     }

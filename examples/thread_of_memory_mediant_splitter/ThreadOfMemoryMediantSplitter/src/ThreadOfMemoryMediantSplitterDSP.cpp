@@ -1,3 +1,8 @@
+// Purpose: ThreadOfMemoryMediantSplitter DSP processing.
+// Author: Seth Nenninger (GPT-5.2-Codex Agent)
+// Timestamp: 2026-05-06T19:02:11Z
+// Changelog: Ease freeze triggers and lift wet presence for clearer effect.
+
 /**
  * ThreadOfMemoryMediantSplitterDSP.cpp
  *
@@ -82,8 +87,10 @@ public:
         const float ghostTone = computeGhost(ch);
         const float shiftedHarmony = computeShifted(ch);
 
-        const float wet = shiftedHarmony * (1.0f - ghostBlend_)
-                        + ghostTone * ghostBlend_;
+        const float harmonyGain = 0.90f + 0.65f * freezeAmount_;
+        const float ghostGain = 0.80f + 0.60f * freezeAmount_;
+        const float wet = shiftedHarmony * (1.0f - ghostBlend_) * harmonyGain
+                + ghostTone * ghostBlend_ * ghostGain;
         const float output = input * (1.0f - outputWet_)
                            + wet * outputWet_;
 
@@ -184,7 +191,7 @@ private:
             (shiftRatio_ - 1.0f) / std::max(1.0f, grainSizeSamples_),
             1.0e-6f);
 
-        outputWet_ = std::clamp(0.40f + freezeAmount_ * 0.50f, 0.0f, 1.0f);
+        outputWet_ = std::clamp(0.60f + freezeAmount_ * 0.45f, 0.0f, 1.0f);
         freezePlaybackRate_ = 0.10f + (1.0f - freezeAmount_) * 0.45f;
     }
 
@@ -231,9 +238,9 @@ private:
                 if (previousTrackedHz_ > 20.0f) {
                     const float ratio = std::max(0.01f, trackedHz_ / previousTrackedHz_);
                     const float semitoneJump = 12.0f * std::abs(std::log2(ratio));
-                    const float gate = 0.01f + (1.0f - freezeAmount_) * 0.015f;
+                    const float gate = 0.0045f + (1.0f - freezeAmount_) * 0.008f;
 
-                    if (envelope_ > gate && semitoneJump > 2.25f)
+                    if (envelope_ > gate && semitoneJump > 0.9f)
                         triggerFreeze();
                 }
 

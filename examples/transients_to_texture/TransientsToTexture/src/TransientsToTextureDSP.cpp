@@ -1,6 +1,11 @@
+// Purpose: TransientsToTexture DSP processing.
+// Author: Seth Nenninger (GPT-5.2-Codex Agent)
+// Timestamp: 2026-05-06T19:02:11Z
+// Changelog: Reduce loudness and smooth the transient texture blend.
+
 #include <AgentDSP.h>
 #include <cmath>
-#include <cstdlib>
+#include <cstdint>
 
 class TransientsToTextureProcessor : public AgentVST::IAgentDSP {
 public:
@@ -13,6 +18,7 @@ public:
             ch_state[ch].texture_phase = 0.0f;
             ch_state[ch].last_out = 0.0f;
             ch_state[ch].trigger_holdoff = 0;
+            ch_state[ch].rng_state = 0x12345678u + static_cast<uint32_t>(ch * 7919u);
         }
 
         // attack 1ms, release 10ms for fast
@@ -56,7 +62,7 @@ public:
         
         if (is_transient && state.trigger_holdoff <= 0) {
             state.texture_env = 1.0f;
-            state.trigger_holdoff = static_cast<int>(0.080f * sampleRate_); // 80ms holdoff
+            state.trigger_holdoff = static_cast<int>(0.120f * sampleRate_); // 120ms holdoff
         }
 
         // Apply decay
@@ -64,23 +70,27 @@ public:
         state.texture_env *= decay_coeff;
 
         // Ensure duck is smooth: mapping it to 1.0 - texture_env
-        float duck = 1.0f - env_out;
+        float duck = 1.0f - (env_out * 0.55f);
         
-        float noise = ((float)std::rand() / (float)RAND_MAX) * 2.0f - 1.0f;
+        state.rng_state = state.rng_state * 1664525u + 1013904223u;
+        float noise = static_cast<float>(state.rng_state) * (1.0f / 4294967296.0f);
+        noise = noise * 2.0f - 1.0f;
         float texture = 0.0f;
 
         if (palette == 0) { // Crackle
-            if (((float)std::rand() / (float)RAND_MAX) < 0.03f) {
-                texture = noise * 2.0f;
+            state.rng_state = state.rng_state * 1664525u + 1013904223u;
+            float dice = static_cast<float>(state.rng_state) * (1.0f / 4294967296.0f);
+            if (dice < 0.03f) {
+                texture = noise * 0.9f;
             }
         }
         else if (palette == 1) { // Scrape (Highpassed noise)
             state.last_out += 0.5f * (noise - state.last_out);
-            texture = (noise - state.last_out) * 1.5f;
+            texture = (noise - state.last_out) * 0.7f;
         }
         else if (palette == 2) { // Wind (Lowpassed noise)
             state.last_out += 0.01f * (noise - state.last_out);
-            texture = state.last_out * 6.0f;
+            texture = state.last_out * 1.6f;
         }
         else if (palette == 3) { // Digital Glitch (Sample and hold noise)
             state.texture_phase += 0.05f; // S&H clock
@@ -88,17 +98,21 @@ public:
                 state.texture_phase -= 1.0f;
                 state.last_out = noise;
             }
-            texture = state.last_out * 1.5f;
+            texture = state.last_out * 0.7f;
         }
         
         // Clip texture slightly to avoid blowing up
         if (texture > 1.0f) texture = 1.0f;
         if (texture < -1.0f) texture = -1.0f;
 
-        float dry_portion = input * (1.0f - mix) + input * duck * mix;
-        float wet_portion = texture * env_out * mix;
+        texture *= 0.45f;
 
-        return dry_portion + wet_portion;
+        float wetMix = mix * 0.7f;
+        float dryMix = 1.0f - wetMix;
+        float dry_portion = input * dryMix + input * duck * wetMix;
+        float wet_portion = texture * env_out * wetMix * 0.7f;
+
+        return std::tanh((dry_portion + wet_portion) * 0.9f);
     }
 
     void reset() override {
@@ -109,6 +123,7 @@ public:
             ch_state[ch].texture_phase = 0.0f;
             ch_state[ch].last_out = 0.0f;
             ch_state[ch].trigger_holdoff = 0;
+            ch_state[ch].rng_state = 0x12345678u + static_cast<uint32_t>(ch * 7919u);
         }
     }
 
@@ -126,6 +141,7 @@ private:
         float texture_phase;
         float last_out;
         int trigger_holdoff;
+        uint32_t rng_state;
     };
     ChannelState ch_state[2];
 };

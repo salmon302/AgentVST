@@ -18,11 +18,23 @@ public:
     float processSample(int channel, float input, const AgentVST::DSPContext& ctx) override {
         if (channel >= 2) return input;
 
-        float trigger = ctx.getParameter("capture_trigger");
-        float entropy = ctx.getParameter("entropy_amount");
-        float rot = ctx.getParameter("chronological_rot");
-        float mix = ctx.getParameter("mix");
+        
 
+        // Cache parameters per block
+        if (ctx.currentSample != lastBlockStart_) {
+            lastBlockStart_ = ctx.currentSample;
+            cachedTrigger_ = ctx.getParameter("capture_trigger");
+            cachedEntropy_ = ctx.getParameter("entropy_amount");
+            cachedRot_ = ctx.getParameter("chronological_rot");
+            cachedMix_ = ctx.getParameter("mix");
+            // Precompute grain duration in samples
+            cachedGrainDurSamples_ = 50.0f * (static_cast<float>(fs) / 1000.0f);
+        }
+
+        float trigger = cachedTrigger_;
+        float entropy = cachedEntropy_;
+        float rot = cachedRot_;
+        float mix = cachedMix_;
         bool isFrozen = (trigger > 0.5f);
         
         // Edge detector
@@ -58,8 +70,7 @@ public:
         if (channel == 0) {
             // Update Granular / Glitch Engine timers
             grainTimer++;
-            float grainDurSamples = 50.0f * (fs / 1000.0f); // 50ms base grain
-            if (grainTimer > grainDurSamples) {
+            if (grainTimer > static_cast<int>(cachedGrainDurSamples_)) {
                 grainTimer = 0;
                 
                 // Jump to a new random location when grain resets
@@ -135,6 +146,12 @@ private:
     int grainTimer = 0;
     int srCounter = 0;
     float heldSample[2];
+    float cachedTrigger_ = 0.0f;
+    float cachedEntropy_ = 0.0f;
+    float cachedRot_ = 0.0f;
+    float cachedMix_ = 0.0f;
+    float cachedGrainDurSamples_ = 0.0f;
+    int lastBlockStart_ = -1;
 };
 
 AGENTVST_REGISTER_DSP(FracturedTachyonProcessor)

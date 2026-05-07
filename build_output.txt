@@ -1,0 +1,51 @@
+MSBuild version 17.14.23+b0019275e for .NET Framework
+
+  Checking File Globs
+  agentvst_framework.vcxproj -> I:\Documents\GitHub\AgentVST\build\framework\Debug\agentvst_framework.lib
+  KineticDrumEngineDSP.cpp
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(35,41): warning C4100: 'maxBlockSize': unreferenced parameter [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(360,13): error C2065: 'ch': undeclared identifier [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(360,17): error C2059: syntax error: '=' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(360,42): error C2238: unexpected token(s) preceding ';' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(361,13): error C2065: 'ch': undeclared identifier [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(361,17): error C2059: syntax error: '=' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(361,39): error C2238: unexpected token(s) preceding ';' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(362,13): error C2065: 'ch': undeclared identifier [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(362,17): error C2059: syntax error: '=' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(362,42): error C2238: unexpected token(s) preceding ';' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(363,13): error C2065: 'ch': undeclared identifier [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(363,17): error C2059: syntax error: '=' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(363,39): error C2238: unexpected token(s) preceding ';' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(364,13): error C2065: 'ch': undeclared identifier [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(364,17): error C2059: syntax error: '=' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(364,42): error C2238: unexpected token(s) preceding ';' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(366,1): error C2059: syntax error: '}' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(366,1): error C2143: syntax error: missing ';' before '}' [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(315,21): warning C4458: declaration of 'omega' hides class member [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+      I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(350,21):
+      see declaration of 'AutoCarvingModule::omega'
+  
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(315,48): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(315,27): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(316,21): warning C4458: declaration of 'sinW0' hides class member [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+      I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(351,21):
+      see declaration of 'AutoCarvingModule::sinW0'
+  
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(317,21): warning C4458: declaration of 'cosW0' hides class member [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+      I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(352,21):
+      see declaration of 'AutoCarvingModule::cosW0'
+  
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(318,21): warning C4458: declaration of 'alpha' hides class member [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+      I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(353,21):
+      see declaration of 'AutoCarvingModule::alpha'
+  
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(320,21): warning C4458: declaration of 'a0' hides class member [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+      I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(359,21):
+      see declaration of 'AutoCarvingModule::a0'
+  
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(579,55): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(579,30): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(580,57): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(580,31): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(769,48): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]
+I:\Documents\GitHub\AgentVST\examples\kinetic_drum_engine\KineticDrumEngine\src\KineticDrumEngineDSP.cpp(769,27): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data [I:\Documents\GitHub\AgentVST\build\examples\kinetic_drum_engine\KineticDrumEngine\AgentKineticDrumEngine.vcxproj]

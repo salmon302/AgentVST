@@ -1,4 +1,10 @@
 {
+  "_agent_header": {
+    "purpose": "Schema definition for Doppler Shifted Room.",
+    "author": "Seth Nenninger (GitHub Copilot GPT-5.2-Codex)",
+    "date": "2026-05-06T00:00:00Z",
+    "change": "Rename doppler_depth to room_velocity and align parameters."
+  },
   "plugin": {
     "name": "Doppler Shifted Room",
     "version": "1.0.0",
@@ -6,6 +12,16 @@
     "category": "Reverb"
   },
   "parameters": [
+    {
+      "id": "expansion_cycle",
+      "name": "Expansion Cycle",
+      "type": "float",
+      "min": 0.001,
+      "max": 2.0,
+      "default": 0.1,
+      "unit": "Hz",
+      "group": "doppler"
+    },
     {
       "id": "room_velocity",
       "name": "Room Velocity",
@@ -17,14 +33,44 @@
       "group": "doppler"
     },
     {
-      "id": "expansion_cycle",
-      "name": "Expansion Cycle",
+      "id": "expand_ratio",
+      "name": "Expand Ratio",
       "type": "float",
       "min": 0.1,
       "max": 10.0,
-      "default": 0.5,
-      "unit": "Hz",
+      "default": 1.0,
+      "unit": "x",
       "group": "doppler"
+    },
+    {
+      "id": "lfo_waveform",
+      "name": "LFO Waveform",
+      "type": "float",
+      "min": 0.0,
+      "max": 3.0,
+      "default": 0.0,
+      "unit": "",
+      "group": "doppler"
+    },
+    {
+      "id": "stereo_spread",
+      "name": "Stereo Spread",
+      "type": "float",
+      "min": 0.0,
+      "max": 180.0,
+      "default": 90.0,
+      "unit": "deg",
+      "group": "doppler"
+    },
+    {
+      "id": "pre_delay",
+      "name": "Pre-Delay",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 20.0,
+      "unit": "ms",
+      "group": "reverb"
     },
     {
       "id": "acoustic_mass",
@@ -34,6 +80,16 @@
       "max": 10.0,
       "default": 2.0,
       "unit": "s",
+      "group": "reverb"
+    },
+    {
+      "id": "damping",
+      "name": "Damping",
+      "type": "float",
+      "min": 0.0,
+      "max": 100.0,
+      "default": 50.0,
+      "unit": "%",
       "group": "reverb"
     },
     {
@@ -52,15 +108,20 @@
       "id": "doppler",
       "name": "Doppler",
       "parameters": [
+        "expansion_cycle",
         "room_velocity",
-        "expansion_cycle"
+        "expand_ratio",
+        "lfo_waveform",
+        "stereo_spread"
       ]
     },
     {
       "id": "reverb",
       "name": "Reverb",
       "parameters": [
+        "pre_delay",
         "acoustic_mass",
+        "damping",
         "mix"
       ]
     }

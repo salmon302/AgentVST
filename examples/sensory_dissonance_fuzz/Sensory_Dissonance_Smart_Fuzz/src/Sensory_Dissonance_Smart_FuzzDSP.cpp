@@ -1,5 +1,6 @@
 /**
  * Sensory Dissonance Smart Fuzz DSP
+ * PERFORMANCE: Added parameter caching at block start
  *
  * Implements a target roughness (e.g. 30Hz) beating multiplier triggered
  * by amplitude complexity (approximating polyphony/dissonance threshold)
@@ -18,18 +19,35 @@ class Sensory_Dissonance_Smart_FuzzProcessor : public AgentVST::IAgentDSP {
 public:
     void prepare(double sampleRate, int /*maxBlockSize*/) override {
         sampleRate_ = sampleRate;
+        
+        // PERFORMANCE: Initialize parameter cache
+        cachedRoughnessHz_ = 30.0f;
+        cachedThreshold_ = 0.5f;
+        cachedDissonance_ = 0.5f;
+        cachedFuzzDrive_ = 0.0f;
+        lastBlockStart_ = -1;
+        
         reset();
     }
 
     float processSample(int channel, float input,
                         const AgentVST::DSPContext& ctx) override {
+        // PERFORMANCE: Cache parameters at block start
+        if (ctx.currentSample != lastBlockStart_) {
+            lastBlockStart_ = ctx.currentSample;
+            cachedRoughnessHz_ = ctx.getParameter("roughness_hz");
+            cachedThreshold_ = ctx.getParameter("smart_threshold");
+            cachedDissonance_ = ctx.getParameter("dissonance_injection");
+            cachedFuzzDrive_ = ctx.getParameter("fuzz_drive");
+        }
+
         if (channel >= kMaxChannels) return input;
 
-        // 1. Read parameters
-        float roughnessHz = ctx.getParameter("roughness_hz");
-        float threshold = ctx.getParameter("smart_threshold");
-        float dissonance = ctx.getParameter("dissonance_injection");
-        float fuzzDrive = ctx.getParameter("fuzz_drive"); // dB
+        // Use cached parameter values
+        float roughnessHz = cachedRoughnessHz_;
+        float threshold = cachedThreshold_;
+        float dissonance = cachedDissonance_;
+        float fuzzDrive = cachedFuzzDrive_;
 
         // Convert drive dB to linear
         float driveLin = std::pow(10.0f, fuzzDrive / 20.0f);
@@ -105,6 +123,13 @@ private:
     
     float envFast_[kMaxChannels] = {0.0f, 0.0f};
     float envSlow_[kMaxChannels] = {0.0f, 0.0f};
+    
+    // PERFORMANCE: Cached parameter values
+    float cachedRoughnessHz_ = 30.0f;
+    float cachedThreshold_ = 0.5f;
+    float cachedDissonance_ = 0.5f;
+    float cachedFuzzDrive_ = 0.0f;
+    std::int64_t lastBlockStart_ = -1;
 };
 
 AGENTVST_REGISTER_DSP(Sensory_Dissonance_Smart_FuzzProcessor)

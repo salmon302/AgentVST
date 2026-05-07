@@ -1,3 +1,8 @@
+// Purpose: DynamizationHaasComb DSP processing.
+// Author: Seth Nenninger (GPT-5.2-Codex Agent)
+// Timestamp: 2026-05-05T04:38:27Z
+// Changelog: Smooth delay modulation and clamp delays to reduce glitches.
+
 /**
  * Generated DSP scaffold.
  *
@@ -87,14 +92,17 @@ public:
 class DynamizationHaasCombProcessor : public AgentVST::IAgentDSP {
 private:
     float sampleRate = 44100.0f;
+    int maxDelaySamples = 0;
     std::vector<std::vector<SchroederAllPass>> allPasses;
     EnvelopeFollower envFollower[2]; // Stereo envelope followers
     FractionalDelay haasDelay;
+    float smoothedDelay[2][MAX_CASCADES] = {};
+    float smoothedHaas[2] = {};
     
 public:
     void prepare(double sr, int /*maxBlockSize*/) override {
         sampleRate = static_cast<float>(sr);
-        int maxDelaySamples = static_cast<int>(std::ceil(MAX_DELAY_MS * 0.001f * sampleRate)) + 2;
+        maxDelaySamples = static_cast<int>(std::ceil(MAX_DELAY_MS * 0.001f * sampleRate)) + 2;
         
         allPasses.resize(2); // stereo
         for (int ch = 0; ch < 2; ++ch) {
@@ -118,20 +126,29 @@ public:
         
         float env = envFollower[channel].process(input, 0.001f, viscosityParam * 0.001f, sampleRate); // attack = 1ms
         
+        const float maxDelaySamplesFloat = static_cast<float>(std::max(2, maxDelaySamples - 2));
+        const float delaySmoothCoeff = std::exp(-1.0f / (0.02f * sampleRate));
         float processed = input;
         
         for (int i = 0; i < numCascades; ++i) {
             float baseDelayMs = 1.1f + i * 0.7f;
             float dynDelayMs = baseDelayMs + env * baseDelayMs * 0.5f; 
-            float delaySamples = std::max(1.0f, dynDelayMs * 0.001f * sampleRate);
-            processed = allPasses[channel][i].process(processed, delaySamples, 0.6f);
+            float delaySamples = std::clamp(dynDelayMs * 0.001f * sampleRate, 1.0f, maxDelaySamplesFloat);
+            float& smooth = smoothedDelay[channel][i];
+            if (smooth <= 0.0f) smooth = delaySamples;
+            smooth = delaySmoothCoeff * smooth + (1.0f - delaySmoothCoeff) * delaySamples;
+            processed = allPasses[channel][i].process(processed, smooth, 0.6f);
         }
         
         if (channel == 1) { // Haas spread purely on right channel
-            haasDelay.write(processed);
             float haasMs = env * shatterParam;
-            float haasSamples = std::max(1.0f, haasMs * 0.001f * sampleRate);
-            processed = haasDelay.read(haasSamples);
+            float haasSamples = std::clamp(haasMs * 0.001f * sampleRate, 1.0f, maxDelaySamplesFloat);
+            float& haasSmooth = smoothedHaas[channel];
+            if (haasSmooth <= 0.0f) haasSmooth = haasSamples;
+            haasSmooth = delaySmoothCoeff * haasSmooth + (1.0f - delaySmoothCoeff) * haasSamples;
+            float haasOut = haasDelay.read(haasSmooth);
+            haasDelay.write(processed);
+            processed = haasOut;
         }
 
         return input * (1.0f - mixParam) + processed * mixParam;
@@ -146,6 +163,9 @@ public:
         haasDelay.reset();
         envFollower[0].reset();
         envFollower[1].reset();
+        std::fill(&smoothedDelay[0][0], &smoothedDelay[0][0] + (2 * MAX_CASCADES), 0.0f);
+        smoothedHaas[0] = 0.0f;
+        smoothedHaas[1] = 0.0f;
     }
 };
 

@@ -11,9 +11,10 @@
       "name": "Sledgehammer",
       "type": "float",
       "min": 0.0,
-      "max": 24.0,
+      "max": 12.0,
       "default": 12.0,
-      "unit": "dB"
+      "unit": "dB",
+      "step": 0.1
     },
     {
       "id": "attack_ms",
@@ -25,13 +26,24 @@
       "unit": "ms"
     },
     {
+      "id": "transient_slope_db",
+      "name": "Transient Slope",
+      "type": "float",
+      "min": 1.0,
+      "max": 12.0,
+      "default": 6.0,
+      "unit": "dB",
+      "step": 0.1
+    },
+    {
       "id": "tail_crushing",
       "name": "Tail Crushing",
       "type": "float",
-      "min": -24.0,
+      "min": -12.0,
       "max": 0.0,
       "default": -6.0,
-      "unit": "dB"
+      "unit": "dB",
+      "step": 0.1
     }
   ]
 }

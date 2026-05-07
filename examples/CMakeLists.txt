@@ -1,2 +1,4 @@
 add_subdirectory(false_memory_convolution/FalseMemoryConvolution)
 add_subdirectory(just_intonation_muqarnas/JustIntonationMuqarnas)
+add_subdirectory(kinetic_drum_engine/KineticDrumEngine)
+add_subdirectory(escher_shift/Escher_Shift)

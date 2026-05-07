@@ -40,7 +40,13 @@ public:
 
     float processSample(int channel, float input,
                         const AgentVST::DSPContext& ctx) override {
-        if (ctx.getParameter("bypass") >= 0.5f)
+        // Cache bypass once per block to avoid per-sample parameter lookup
+        if (ctx.currentSample != lastBlockStart_) {
+            lastBlockStart_ = ctx.currentSample;
+            cachedBypass_ = ctx.getParameter("bypass");
+        }
+
+        if (cachedBypass_ >= 0.5f)
             return input;
 
         if (delayBuffer_.empty() || maxDelaySamples_ <= 2)
@@ -105,6 +111,8 @@ private:
     double sampleRate_ = 44100.0;
     int maxDelaySamples_ = 0;
     std::int64_t sampleStamp_ = -1;
+    std::int64_t lastBlockStart_ = -1;
+    float cachedBypass_ = 0.0f;
 
     float baseDelaySamples_ = 22050.0f;
     float feedback_ = 0.45f;

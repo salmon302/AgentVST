@@ -1,4 +1,9 @@
-﻿#include <AgentDSP.h>
+﻿// Purpose: IntermodulationWallGenerator DSP processing.
+// Author: Seth Nenninger (GPT-5.2-Codex Agent)
+// Timestamp: 2026-05-05T04:43:49Z
+// Changelog: Smooth comb feedback and reduce distortion loudness.
+
+#include <AgentDSP.h>
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -47,7 +52,8 @@ class IntermodulationWallGeneratorProcessor : public AgentVST::IAgentDSP {
     
     CombFilter comb[4];
     AllPassFilter allpass[2];
-    float envValue = 0.0f;
+    float envValue[2] = {};
+    float smoothedFeedback[2] = {};
     float attack = 0.0f;
     float release = 0.0f;
     
@@ -71,12 +77,17 @@ public:
             return input;
         }
 
-        float swellTime = ctx.getParameter("swell_time"); 
-        float wallDensity = ctx.getParameter("wall_density"); 
+        float swellTime = ctx.getParameter("swell_time");
+        float wallDensity = ctx.getParameter("wall_density");
         float breathingGate = ctx.getParameter("breathing_gate");
-        
-        float fb = 0.5f + 0.45f * (std::min(swellTime, 5000.0f) / 5000.0f);
-        for(int i=0; i<4; i++) comb[i].feedback = fb;
+
+        float fbTarget = 0.5f + 0.45f * (std::min(swellTime, 5000.0f) / 5000.0f);
+        float fbSmoothCoeff = std::exp(-1.0f / (0.05f * static_cast<float>(sampleRate)));
+        float& fb = smoothedFeedback[channel];
+        if (fb <= 0.0f) fb = fbTarget;
+        fb = fbSmoothCoeff * fb + (1.0f - fbSmoothCoeff) * fbTarget;
+        fb = std::clamp(fb, 0.0f, 0.95f);
+        for (int i = 0; i < 4; i++) comb[i].feedback = fb;
 
         float combOut = (comb[0].process(input) + comb[1].process(input) + 
                          comb[2].process(input) + comb[3].process(input)) * 0.25f;
@@ -84,19 +95,22 @@ public:
         float wet = allpass[1].process(allpass[0].process(combOut));
         
         // Clipping Stage (Wall Density)
-        float drive = 1.0f + (wallDensity / 100.0f) * 50.0f; 
-        float distorted = std::tanh(wet * drive);
+        float density = wallDensity * 0.01f;
+        float drive = 1.0f + density * 20.0f;
+        float driveComp = 1.0f / (1.0f + density * 4.0f);
+        float distorted = std::tanh(wet * drive) * driveComp;
         
         // Sidechain Ducking Envelope follower (Breathing Gate)
         float absIn = std::abs(input);
-        if (absIn > envValue) {
-            envValue = attack * envValue + (1.0f - attack) * absIn;
+        float& env = envValue[channel];
+        if (absIn > env) {
+            env = attack * env + (1.0f - attack) * absIn;
         } else {
-            envValue = release * envValue + (1.0f - release) * absIn;
+            env = release * env + (1.0f - release) * absIn;
         }
         
         float duckDepth = breathingGate / 100.0f;
-        float duckGain = std::max(0.0f, 1.0f - (envValue * duckDepth * 5.0f));
+        float duckGain = std::max(0.0f, 1.0f - (env * duckDepth * 4.0f));
         
         float dryMixFactor = 1.0f - ((wallDensity / 100.0f) * 0.8f);
         return (input * dryMixFactor) + (distorted * duckGain);
@@ -109,7 +123,10 @@ public:
         for(int i=0; i<2; i++) {
             std::fill(allpass[i].buffer.begin(), allpass[i].buffer.end(), 0.0f);
         }
-        envValue = 0.0f;
+        envValue[0] = 0.0f;
+        envValue[1] = 0.0f;
+        smoothedFeedback[0] = 0.0f;
+        smoothedFeedback[1] = 0.0f;
     }
 };
 

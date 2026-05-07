@@ -1,3 +1,8 @@
+// Purpose: ReluctantResolutionTemporalSuspension DSP processing.
+// Author: Seth Nenninger (GPT-5.2-Codex Agent)
+// Timestamp: 2026-05-06T18:58:46Z
+// Changelog: Boost onset detection and wet energy for more audible resolution.
+
 /**
  * ReluctantResolutionTemporalSuspensionDSP.cpp
  *
@@ -29,7 +34,7 @@ public:
             lowState_[ch] = 0.0f;
         }
 
-        const float hpCutoffHz = 1800.0f;
+        const float hpCutoffHz = 700.0f;
         highpassAlpha_ = std::exp(-kTwoPi * hpCutoffHz / static_cast<float>(sampleRate_));
 
         reset();
@@ -40,12 +45,12 @@ public:
         if (channel >= kMaxChannels)
             return input;
 
+        const float highBand = splitHighBand(channel, input);
+
         if (sampleStamp_ != static_cast<std::int64_t>(ctx.currentSample)) {
             sampleStamp_ = static_cast<std::int64_t>(ctx.currentSample);
-            updateSharedState(input, ctx);
+            updateSharedState(highBand, ctx);
         }
-
-        const float highBand = splitHighBand(channel, input);
 
         if (captureActive_ && captureWritePos_ >= 0 && captureWritePos_ < maxCaptureSamples_) {
             captureBuffer_[channel][static_cast<size_t>(captureWritePos_)] = highBand;
@@ -53,7 +58,7 @@ public:
 
         float dry = input;
         if (voiceActive_ && voiceAgeSamples_ < lagSamples_) {
-            dry -= highBand * 0.70f;
+            dry -= highBand * (0.45f + 0.20f * resolutionNorm_);
         }
 
         float wet = 0.0f;
@@ -61,7 +66,8 @@ public:
             wet = readCaptured(channel, voiceReadPos_) * voiceGain_;
         }
 
-        return dry + (wet * 0.85f);
+        const float wetMix = 0.95f + 0.75f * resolutionNorm_;
+        return std::tanh(dry + (wet * wetMix));
     }
 
     void reset() override {
@@ -121,7 +127,7 @@ private:
 
         const float lagNorm = std::clamp(lagMs / 600.0f, 0.0f, 1.0f);
         captureDurationSamples_ = std::clamp(
-            static_cast<int>((0.015f + lagNorm * 0.055f) * static_cast<float>(sampleRate_)),
+            static_cast<int>((0.030f + lagNorm * 0.080f) * static_cast<float>(sampleRate_)),
             16,
             std::max(16, maxCaptureSamples_ - 1));
 
@@ -143,8 +149,8 @@ private:
         else
             transientSlow_ = slowRelease * transientSlow_ + (1.0f - slowRelease) * transient;
 
-        const float absoluteGate = 0.002f + (catchThresholdNorm_ * 0.08f);
-        const float relativeGate = transientSlow_ * (1.35f + (catchThresholdNorm_ * 1.9f));
+        const float absoluteGate = 0.0006f + (catchThresholdNorm_ * 0.012f);
+        const float relativeGate = transientSlow_ * (0.55f + (catchThresholdNorm_ * 0.80f));
         const bool onset = (transientFast_ > absoluteGate)
                         && (transientFast_ > relativeGate);
 
@@ -219,14 +225,14 @@ private:
             voiceReadPos_ -= static_cast<float>(capturedLengthSamples_);
 
         if (afterLag <= glideSamples_) {
-            voiceGain_ = 0.85f;
+            voiceGain_ = 1.10f;
         } else {
             const int releaseAge = afterLag - glideSamples_;
             const float releaseT = std::clamp(
                 static_cast<float>(releaseAge) / static_cast<float>(std::max(1, releaseSamples_)),
                 0.0f,
                 1.0f);
-            voiceGain_ = 0.85f * (1.0f - releaseT);
+            voiceGain_ = 1.10f * (1.0f - releaseT);
         }
     }
 
